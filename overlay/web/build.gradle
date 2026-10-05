@@ -5,7 +5,9 @@ plugins {
 }
 
 [compileJava, compileTestJava]*.options*.encoding = 'UTF-8'
-// gdx-teavm 1.6.1 web artifacts are published for Java 17.\n// Keep upstream/core on Java 11; only the browser platform module targets 17.\njava.sourceCompatibility = java.targetCompatibility = JavaVersion.VERSION_17
+// gdx-teavm 1.6.1 web artifacts are published for Java 17.
+// Keep upstream/core on Java 11; only the browser platform module targets 17.
+java.sourceCompatibility = java.targetCompatibility = JavaVersion.VERSION_17
 
 dependencies {
     implementation project(':core')
@@ -20,10 +22,10 @@ dependencies {
 gdxTeaVM {
     assets.from(file("../core/src/main/assets"))
 
-    // Shattered serializes many concrete game classes by runtime class name.
-    // Broad registration is intentional for the first compatibility milestone.
-    reflection("com.shatteredpixel.shatteredpixeldungeon.**")
-    reflection("com.watabou.**")
+    // Keep the plugin's reachable-class reflection scan, but do not register
+    // the entire game packages. Broad package reflection makes TeaVM's
+    // dependency graph explode and is unnecessary for classes already
+    // reachable through Shattered's class literals/generator tables.
 
     js {
         mainClass.set("com.shatteredpixel.shatteredpixeldungeon.web.WebLauncher")
@@ -32,8 +34,8 @@ gdxTeaVM {
         htmlHeight.set(720)
         targetFileName.set("shattered-pixel-dungeon.js")
         optimization.set(OptimizationLevel.BALANCED)
-        // TeaVM runs out-of-process; Shattered's reflected class graph needs
-        // substantially more than the plugin's 1024 MB default.
+        fastGlobalAnalysis.set(true)
+        // TeaVM runs out-of-process. Give dependency analysis a dedicated heap.
         processMemory.set(4096)
         obfuscated.set(false)
     }
