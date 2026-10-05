@@ -25,7 +25,7 @@ import sys
 
 index = Path(sys.argv[1])
 html = index.read_text(encoding="utf-8")
-diagnostics = """<script>
+diagnostics = r"""<script>
 function spdSmokeText(value) {
   return String(value == null ? '' : value)
       .replace(/[\r\n\t]+/g, ' ')
@@ -47,6 +47,13 @@ window.addEventListener('unhandledrejection', function (event) {
 });
 window.addEventListener('load', function () {
   document.documentElement.setAttribute('data-spd-load-event', 'true');
+  try {
+    var probeCanvas = document.getElementById('canvas');
+    var probeGl = probeCanvas && probeCanvas.getContext('webgl');
+    document.documentElement.setAttribute('data-spd-webgl', probeGl ? 'true' : 'false');
+  } catch (probeError) {
+    document.documentElement.setAttribute('data-spd-webgl', 'error:' + spdSmokeText(probeError));
+  }
   setTimeout(function () {
     document.documentElement.setAttribute('data-spd-timeout', 'true');
   }, 100);
@@ -152,7 +159,7 @@ if ! grep -q 'data-spd-game-ready="true"' "$DOM_OUT" \
   echo "Browser smoke test did not reach Shattered Pixel Dungeon + Yandex LoadingAPI ready." >&2
   if grep -q 'data-spd-smoke-error=' "$DOM_OUT" || grep -q 'data-spd-smoke-rejection=' "$DOM_OUT"; then
     echo "Captured JavaScript runtime failure:" >&2
-    grep -o 'data-spd-smoke-\(error\|rejection\|stack\)="[^"]*"' "$DOM_OUT" >&2 || true
+    grep -o 'data-spd-\(smoke-\(error\|rejection\|stack\)\|webgl\)="[^"]*"' "$DOM_OUT" >&2 || true
   fi
   echo "--- Chrome log ---" >&2
   tail -200 "$CHROME_LOG" >&2 || true
