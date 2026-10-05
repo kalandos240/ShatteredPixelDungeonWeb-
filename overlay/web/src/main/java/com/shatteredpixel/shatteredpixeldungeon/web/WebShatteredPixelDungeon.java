@@ -52,6 +52,9 @@ public class WebShatteredPixelDungeon extends ShatteredPixelDungeon {
         FileUtils.setDefaultFileProperties(Files.FileType.Local, "");
 
         applyInitialPlatformLanguage();
+        if (smokeMode) {
+            YandexGamesSdk.smokeLanguage(SPDSettings.language().code());
+        }
         super.create();
 
         created = true;
