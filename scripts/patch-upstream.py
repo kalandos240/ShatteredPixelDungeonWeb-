@@ -84,3 +84,39 @@ gradle_properties_text = gradle_properties_text.replace(
     "org.gradle.parallel=false"
 )
 gradle_properties.write_text(gradle_properties_text, encoding="utf-8")
+
+
+# SharedLibraryLoader.os does not exist in the TeaVM libGDX emulation.
+# Device checks should use the backend-neutral ApplicationType API.
+device_compat = root / "SPD-classes/src/main/java/com/watabou/utils/DeviceCompat.java"
+device_compat_text = device_compat.read_text(encoding="utf-8")
+device_compat_text = device_compat_text.replace(
+    "import com.badlogic.gdx.Gdx;\nimport com.badlogic.gdx.Input;\nimport com.badlogic.gdx.utils.Os;\nimport com.badlogic.gdx.utils.SharedLibraryLoader;",
+    "import com.badlogic.gdx.Application;\nimport com.badlogic.gdx.Gdx;\nimport com.badlogic.gdx.Input;"
+)
+device_compat_text = device_compat_text.replace(
+    """\tpublic static boolean isAndroid(){
+\t\treturn SharedLibraryLoader.os == Os.Android;
+\t}
+
+\tpublic static boolean isiOS(){
+\t\treturn SharedLibraryLoader.os == Os.IOS;
+\t}
+
+\tpublic static boolean isDesktop(){
+\t\treturn SharedLibraryLoader.os == Os.Windows || SharedLibraryLoader.os == Os.MacOsX || SharedLibraryLoader.os == Os.Linux;
+\t}""",
+    """\tpublic static boolean isAndroid(){
+\t\treturn Gdx.app.getType() == Application.ApplicationType.Android;
+\t}
+
+\tpublic static boolean isiOS(){
+\t\treturn Gdx.app.getType() == Application.ApplicationType.iOS;
+\t}
+
+\tpublic static boolean isDesktop(){
+\t\treturn Gdx.app.getType() == Application.ApplicationType.Desktop
+\t\t\t\t|| Gdx.app.getType() == Application.ApplicationType.HeadlessDesktop;
+\t}"""
+)
+device_compat.write_text(device_compat_text, encoding="utf-8")
