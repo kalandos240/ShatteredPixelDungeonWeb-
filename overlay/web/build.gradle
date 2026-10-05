@@ -56,6 +56,11 @@ tasks.register('yandexDist') {
             from generatedRoot
             into yandexRoot
         }
+        copy {
+            from rootProject.file("LICENSE.txt")
+            from rootProject.file("SOURCE_CODE.txt")
+            into yandexRoot
+        }
 
         def index = file("$yandexRoot/index.html")
         if (!index.isFile()) {
