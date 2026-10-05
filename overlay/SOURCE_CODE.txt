@@ -1,0 +1,28 @@
+Shattered Pixel Dungeon Web
+===========================
+
+This is a modified web/Yandex Games build based on Shattered Pixel Dungeon.
+
+Upstream project:
+  https://github.com/00-Evan/shattered-pixel-dungeon
+
+Upstream version:
+  4.0.1
+
+Pinned upstream commit:
+  e9defd0444c96d2fce3de5ec297c3398be8b7c55
+
+Corresponding source code and reproducible web build scripts:
+  https://github.com/kalandos240/ShatteredPixelDungeonWeb-
+
+The program is distributed under the GNU General Public License version 3
+or later. See LICENSE.txt in this distribution.
+
+Original Shattered Pixel Dungeon copyright:
+  Copyright (C) 2014-2026 Evan Debenham
+
+Pixel Dungeon copyright:
+  Copyright (C) 2012-2015 Oleg Dolya
+
+Web/Yandex port modifications:
+  2026
