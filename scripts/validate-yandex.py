@@ -48,6 +48,8 @@ with zipfile.ZipFile(archive) as zf:
         "scripts/freetype.js",
         "assets/fonts/pixel_font.ttf",
         "assets/fonts/droid_sans.ttf",
+        "LICENSE.txt",
+        "SOURCE_CODE.txt",
     }
     missing = sorted(required.difference(names))
     if missing:
