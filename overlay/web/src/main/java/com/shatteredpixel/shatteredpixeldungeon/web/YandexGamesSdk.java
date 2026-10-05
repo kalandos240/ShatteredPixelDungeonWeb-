@@ -9,13 +9,10 @@ package com.shatteredpixel.shatteredpixeldungeon.web;
 import org.teavm.jso.JSBody;
 import org.teavm.jso.JSFunctor;
 import org.teavm.jso.JSObject;
+import org.teavm.jso.core.JSPromise;
+import org.teavm.jso.core.JSString;
 
 public final class YandexGamesSdk {
-
-    @JSFunctor
-    public interface ReadyCallback extends JSObject {
-        void onReady(String languageCode);
-    }
 
     @JSFunctor
     public interface EventCallback extends JSObject {
@@ -26,17 +23,22 @@ public final class YandexGamesSdk {
     }
 
     /**
-     * Initializes Yandex Games before the libGDX application starts, so
-     * environment.i18n.lang is available before Shattered loads messages.
-     * Local/non-Yandex hosting falls back to a normal launch.
+     * Waits for Yandex Games inside TeaVM's own async/fiber machinery. This is
+     * important because constructing WebApplication can itself suspend; doing
+     * that work directly from a raw Promise callback loses TeaVM's Java thread
+     * context.
      */
-    @JSBody(params = {"ready"}, script =
+    public static String init() {
+        JSString language = initPromise().await();
+        return language == null ? null : language.stringValue();
+    }
+
+    @JSBody(script =
             "if (typeof YaGames === 'undefined') {" +
             "  console.warn('[SPD Web] Yandex Games SDK is unavailable; running without platform services.');" +
-            "  ready(null);" +
-            "  return;" +
+            "  return Promise.resolve(null);" +
             "}" +
-            "YaGames.init().then(function(ysdk) {" +
+            "return YaGames.init().then(function(ysdk) {" +
             "  window.__spdYsdk = ysdk;" +
             "  window.__spdYandexPaused = false;" +
             "  ysdk.on('game_api_pause', function() {" +
@@ -49,12 +51,12 @@ public final class YandexGamesSdk {
             "  });" +
             "  var lang = ysdk.environment && ysdk.environment.i18n" +
             "    ? ysdk.environment.i18n.lang : null;" +
-            "  ready(lang || null);" +
+            "  return lang || null;" +
             "}, function(error) {" +
             "  console.error('[SPD Web] YaGames.init() failed', error);" +
-            "  ready(null);" +
+            "  return null;" +
             "});")
-    public static native void init(ReadyCallback ready);
+    private static native JSPromise<JSString> initPromise();
 
     /**
      * Binds Java-side pause/resume handling after the libGDX app exists.
