@@ -11,6 +11,8 @@ import com.shatteredpixel.shatteredpixeldungeon.Dungeon;
 import com.shatteredpixel.shatteredpixeldungeon.GamesInProgress;
 import com.shatteredpixel.shatteredpixeldungeon.SPDSettings;
 import com.shatteredpixel.shatteredpixeldungeon.ShatteredPixelDungeon;
+import com.shatteredpixel.shatteredpixeldungeon.actors.Actor;
+import com.shatteredpixel.shatteredpixeldungeon.actors.hero.HeroAction;
 import com.shatteredpixel.shatteredpixeldungeon.actors.hero.HeroClass;
 import com.shatteredpixel.shatteredpixeldungeon.messages.Languages;
 import com.shatteredpixel.shatteredpixeldungeon.levels.features.LevelTransition;
@@ -36,6 +38,7 @@ public class WebShatteredPixelDungeon extends ShatteredPixelDungeon {
     private boolean smokeLoadedExisting;
     private int smokeReportedDepth = -1;
     private boolean smokeAdvanceConsumed;
+    private int smokeMoveStartPos = -1;
     private boolean platformPaused;
     private boolean gameReadySent;
     private Boolean gameplayActive;
@@ -141,7 +144,9 @@ public class WebShatteredPixelDungeon extends ShatteredPixelDungeon {
             YandexGamesSdk.smokeScene(Game.scene().getClass().getName());
         }
         reportSmokeGameState();
+        reportSmokeHeroState();
         maybeAdvanceSmokeFloor();
+        maybeMoveSmokeHero();
     }
 
     private void startSmokeRun() {
@@ -157,7 +162,9 @@ public class WebShatteredPixelDungeon extends ShatteredPixelDungeon {
             InterlevelScene.mode = InterlevelScene.Mode.CONTINUE;
         } else {
             GamesInProgress.selectedClass = HeroClass.WARRIOR;
-            Dungeon.initSeed();
+            // Deterministic localhost-only seed keeps CI level generation stable.
+            Dungeon.seed = 123456789L;
+            Dungeon.customSeedText = "WEB-SMOKE";
             ActionIndicator.clearAction();
             InterlevelScene.mode = InterlevelScene.Mode.DESCEND;
         }
@@ -176,6 +183,40 @@ public class WebShatteredPixelDungeon extends ShatteredPixelDungeon {
             smokeReportedDepth = Dungeon.depth;
             YandexGamesSdk.smokeGameSceneReady(smokeLoadedExisting, true, Dungeon.depth);
         }
+    }
+
+    private void reportSmokeHeroState() {
+        if (smokeMode && Game.scene() instanceof GameScene && Dungeon.hero != null) {
+            YandexGamesSdk.smokeHeroState(Dungeon.hero.pos, Dungeon.hero.ready);
+        }
+    }
+
+    private void maybeMoveSmokeHero() {
+        if (!smokeMode || smokeLoadedExisting || smokeMoveStartPos >= 0
+                || !(Game.scene() instanceof GameScene) || Dungeon.depth != 2
+                || Dungeon.hero == null || !Dungeon.hero.ready
+                || !YandexGamesSdk.smokeMoveRequested()) {
+            return;
+        }
+
+        int start = Dungeon.hero.pos;
+        int width = Dungeon.level.width();
+        int[] candidates = {start + 1, start - 1, start + width, start - width};
+
+        for (int target : candidates) {
+            if (Dungeon.level.insideMap(target)
+                    && (Dungeon.level.passable[target] || Dungeon.level.avoid[target])
+                    && !Dungeon.level.pit[target]
+                    && Actor.findChar(target) == null
+                    && Dungeon.level.getTransition(target) == null) {
+                smokeMoveStartPos = start;
+                Dungeon.hero.curAction = new HeroAction.Move(target);
+                Dungeon.hero.next();
+                return;
+            }
+        }
+
+        throw new IllegalStateException("Smoke test could not find an adjacent walkable tile");
     }
 
     private void maybeAdvanceSmokeFloor() {
