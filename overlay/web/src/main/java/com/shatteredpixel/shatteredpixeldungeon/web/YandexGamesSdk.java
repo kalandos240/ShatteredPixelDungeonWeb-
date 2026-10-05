@@ -31,31 +31,29 @@ public final class YandexGamesSdk {
      * Local/non-Yandex hosting falls back to a normal launch.
      */
     @JSBody(params = {"ready"}, script =
-            "(function() {" +
-            "  if (typeof YaGames === 'undefined') {" +
-            "    console.warn('[SPD Web] Yandex Games SDK is unavailable; running without platform services.');" +
-            "    ready(null);" +
-            "    return;" +
-            "  }" +
-            "  YaGames.init().then(function(ysdk) {" +
-            "    window.__spdYsdk = ysdk;" +
-            "    window.__spdYandexPaused = false;" +
-            "    ysdk.on('game_api_pause', function() {" +
-            "      window.__spdYandexPaused = true;" +
-            "      if (window.__spdYandexPauseCb) window.__spdYandexPauseCb();" +
-            "    });" +
-            "    ysdk.on('game_api_resume', function() {" +
-            "      window.__spdYandexPaused = false;" +
-            "      if (window.__spdYandexResumeCb) window.__spdYandexResumeCb();" +
-            "    });" +
-            "    var lang = ysdk.environment && ysdk.environment.i18n" +
-            "      ? ysdk.environment.i18n.lang : null;" +
-            "    ready(lang || null);" +
-            "  }).catch(function(error) {" +
-            "    console.error('[SPD Web] YaGames.init() failed', error);" +
-            "    ready(null);" +
+            "if (typeof YaGames === 'undefined') {" +
+            "  console.warn('[SPD Web] Yandex Games SDK is unavailable; running without platform services.');" +
+            "  ready(null);" +
+            "  return;" +
+            "}" +
+            "YaGames.init().then(function(ysdk) {" +
+            "  window.__spdYsdk = ysdk;" +
+            "  window.__spdYandexPaused = false;" +
+            "  ysdk.on('game_api_pause', function() {" +
+            "    window.__spdYandexPaused = true;" +
+            "    if (window.__spdYandexPauseCb) window.__spdYandexPauseCb();" +
             "  });" +
-            "})();")
+            "  ysdk.on('game_api_resume', function() {" +
+            "    window.__spdYandexPaused = false;" +
+            "    if (window.__spdYandexResumeCb) window.__spdYandexResumeCb();" +
+            "  });" +
+            "  var lang = ysdk.environment && ysdk.environment.i18n" +
+            "    ? ysdk.environment.i18n.lang : null;" +
+            "  ready(lang || null);" +
+            "}).catch(function(error) {" +
+            "  console.error('[SPD Web] YaGames.init() failed', error);" +
+            "  ready(null);" +
+            "});")
     public static native void init(ReadyCallback ready);
 
     /**
@@ -69,21 +67,19 @@ public final class YandexGamesSdk {
     public static native void bindLifecycle(EventCallback pause, EventCallback resume);
 
     @JSBody(script =
-            "(function() {" +
-            "  window.__spdGameReady = true;" +
-            "  if (document && document.documentElement) {" +
-            "    document.documentElement.setAttribute('data-spd-game-ready', 'true');" +
-            "  }" +
-            "  var ysdk = window.__spdYsdk;" +
-            "  if (!ysdk) {" +
-            "    window.__spdPendingGameReady = true;" +
-            "    return;" +
-            "  }" +
-            "  var features = ysdk.features;" +
-            "  if (features && features.LoadingAPI && features.LoadingAPI.ready) {" +
-            "    features.LoadingAPI.ready();" +
-            "  }" +
-            "})();")
+            "window.__spdGameReady = true;" +
+            "if (document && document.documentElement) {" +
+            "  document.documentElement.setAttribute('data-spd-game-ready', 'true');" +
+            "}" +
+            "var ysdk = window.__spdYsdk;" +
+            "if (!ysdk) {" +
+            "  window.__spdPendingGameReady = true;" +
+            "  return;" +
+            "}" +
+            "var features = ysdk.features;" +
+            "if (features && features.LoadingAPI && features.LoadingAPI.ready) {" +
+            "  features.LoadingAPI.ready();" +
+            "}")
     public static native void gameReady();
 
     @JSBody(script =
