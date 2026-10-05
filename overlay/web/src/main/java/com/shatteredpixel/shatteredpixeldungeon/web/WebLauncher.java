@@ -33,7 +33,13 @@ public final class WebLauncher {
         config.preloadListener = assetLoader -> assetLoader.loadScript("freetype.js");
 
         WebShatteredPixelDungeon game = new WebShatteredPixelDungeon(languageCode);
-        new WebApplication(game, config);
+        new WebApplication(game, config) {
+            @Override
+            protected void onError(Throwable error) {
+                YandexGamesSdk.smokeFatalError(error == null ? "unknown Java error" : error.toString());
+                super.onError(error);
+            }
+        };
 
         YandexGamesSdk.bindLifecycle(game::onYandexPause, game::onYandexResume);
     }
