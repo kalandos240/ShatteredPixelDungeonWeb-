@@ -26,12 +26,12 @@ jobs:
       - name: Build Yandex bundle
         run: bash scripts/build-yandex.sh
 
-      - name: Smoke test browser startup
-        run: bash scripts/smoke-yandex.sh
-
       - name: Upload Yandex bundle
         uses: actions/upload-artifact@v4
         with:
           name: ShatteredPixelDungeonWeb-Yandex
           path: .work/ShatteredPixelDungeonWeb-Yandex.zip
           if-no-files-found: error
+
+      - name: Smoke test browser startup
+        run: bash scripts/smoke-yandex.sh
