@@ -542,18 +542,22 @@ about_text = about_text.replace(
 old_about_link = """\t\t\tif (linkText != null && linkUrl != null){
 
 \t\t\t\tint color = 0xFFFFFFFF;"""
-new_about_link = """\t\t\tif (DeviceCompat.isWeb()) {
-\t\t\t\tlinkText = null;
-\t\t\t\tlinkUrl = null;
-\t\t\t}
+new_about_link = """\t\t\tfinal String effectiveLinkText = DeviceCompat.isWeb() ? null : linkText;
+\t\t\tfinal String effectiveLinkUrl = DeviceCompat.isWeb() ? null : linkUrl;
 
-\t\t\tif (linkText != null && linkUrl != null){
+\t\t\tif (effectiveLinkText != null && effectiveLinkUrl != null){
 
+\t\t\t\tlinkText = effectiveLinkText;
 \t\t\t\tint color = 0xFFFFFFFF;"""
 if old_about_link in about_text:
     about_text = about_text.replace(old_about_link, new_about_link, 1)
 elif new_about_link not in about_text:
     raise SystemExit("Could not locate AboutScene credits link block")
+about_text = about_text.replace(
+    "						ShatteredPixelDungeon.platform.openURI( linkUrl );",
+    "						ShatteredPixelDungeon.platform.openURI( effectiveLinkUrl );",
+    1
+)
 about_scene.write_text(about_text, encoding="utf-8")
 
 
