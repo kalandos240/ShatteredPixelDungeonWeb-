@@ -121,6 +121,12 @@ public final class YandexGamesSdk {
             "}")
     public static native void smokeHeroState(int position, boolean ready);
 
+    @JSBody(params = {"key"}, script =
+            "if (document && document.documentElement) {" +
+            "  document.documentElement.setAttribute('data-spd-smoke-key', key || 'unknown');" +
+            "}")
+    public static native void smokeKeyboardTarget(String key);
+
     @JSBody(params = {"sceneName"}, script =
             "if (document && document.documentElement) {" +
             "  document.documentElement.setAttribute('data-spd-smoke-scene', sceneName || 'unknown');" +
