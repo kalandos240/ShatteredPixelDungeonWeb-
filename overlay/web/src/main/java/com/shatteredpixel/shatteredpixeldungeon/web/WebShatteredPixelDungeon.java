@@ -7,23 +7,33 @@
 package com.shatteredpixel.shatteredpixeldungeon.web;
 
 import com.badlogic.gdx.Files;
+import com.shatteredpixel.shatteredpixeldungeon.Dungeon;
+import com.shatteredpixel.shatteredpixeldungeon.GamesInProgress;
 import com.shatteredpixel.shatteredpixeldungeon.SPDSettings;
 import com.shatteredpixel.shatteredpixeldungeon.ShatteredPixelDungeon;
+import com.shatteredpixel.shatteredpixeldungeon.actors.hero.HeroClass;
 import com.shatteredpixel.shatteredpixeldungeon.messages.Languages;
 import com.shatteredpixel.shatteredpixeldungeon.scenes.GameScene;
+import com.shatteredpixel.shatteredpixeldungeon.scenes.InterlevelScene;
+import com.shatteredpixel.shatteredpixeldungeon.ui.ActionIndicator;
 import com.watabou.noosa.Game;
 import com.watabou.noosa.audio.Music;
 import com.watabou.noosa.audio.Sample;
 import com.watabou.utils.FileUtils;
 import com.watabou.utils.GameSettings;
+import org.teavm.jso.JSBody;
 
 import java.util.Locale;
 
 public class WebShatteredPixelDungeon extends ShatteredPixelDungeon {
 
     private final String platformLanguage;
+    private final boolean smokeMode = isLocalSmokeMode();
 
     private boolean created;
+    private boolean smokeRunStarted;
+    private boolean smokeLoadedExisting;
+    private boolean smokeGameSceneReported;
     private boolean platformPaused;
     private boolean gameReadySent;
     private Boolean gameplayActive;
@@ -35,7 +45,7 @@ public class WebShatteredPixelDungeon extends ShatteredPixelDungeon {
 
     @Override
     public void create() {
-        Game.version = "4.0.1-web";
+        Game.version = smokeMode ? "4.0.1-web-INDEV" : "4.0.1-web";
         Game.versionCode = 920;
 
         // gdx-teavm maps local files to browser-local persistent storage.
@@ -117,8 +127,51 @@ public class WebShatteredPixelDungeon extends ShatteredPixelDungeon {
             YandexGamesSdk.gameReady();
         }
 
+        if (smokeMode && gameReadySent && !smokeRunStarted) {
+            startSmokeRun();
+        }
+
         syncGameplayState();
+        reportSmokeGameState();
     }
+
+    private void startSmokeRun() {
+        smokeRunStarted = true;
+        GamesInProgress.curSlot = 1;
+        Dungeon.hero = null;
+        Dungeon.daily = false;
+        Dungeon.dailyReplay = false;
+
+        smokeLoadedExisting = GamesInProgress.gameExists(GamesInProgress.curSlot);
+        if (smokeLoadedExisting) {
+            GamesInProgress.setUnknown(GamesInProgress.curSlot);
+            InterlevelScene.mode = InterlevelScene.Mode.CONTINUE;
+        } else {
+            GamesInProgress.selectedClass = HeroClass.WARRIOR;
+            Dungeon.initSeed();
+            ActionIndicator.clearAction();
+            InterlevelScene.mode = InterlevelScene.Mode.DESCEND;
+        }
+
+        Game.switchScene(InterlevelScene.class);
+    }
+
+    private void reportSmokeGameState() {
+        if (!smokeMode || smokeGameSceneReported || !(Game.scene() instanceof GameScene)) {
+            return;
+        }
+
+        boolean saveReady = GamesInProgress.gameExists(GamesInProgress.curSlot);
+        if (saveReady) {
+            smokeGameSceneReported = true;
+            YandexGamesSdk.smokeGameSceneReady(smokeLoadedExisting, true);
+        }
+    }
+
+    @JSBody(script =
+            "return window.location && window.location.hostname === '127.0.0.1'" +
+            "  && new URLSearchParams(window.location.search).get('spd-smoke') === '1';")
+    private static native boolean isLocalSmokeMode();
 
     private void syncGameplayState() {
         boolean active = created && !platformPaused && Game.scene() instanceof GameScene;
