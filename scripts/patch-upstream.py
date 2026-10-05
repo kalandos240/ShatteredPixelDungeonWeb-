@@ -133,3 +133,22 @@ if not web_font_source.is_file():
     raise SystemExit(f"Missing upstream fallback font: {web_font_source}")
 web_font_target.parent.mkdir(parents=True, exist_ok=True)
 shutil.copyfile(web_font_source, web_font_target)
+
+
+# Shattered forces SpriteBatch to client-side VertexArray in TextInput as a
+# native-driver workaround. WebGL forbids that glVertexAttribPointer(Buffer)
+# path, so use a VBO for the browser while preserving upstream behavior on
+# native platforms.
+text_input_text = text_input.read_text(encoding="utf-8")
+old_vertex_type = "SpriteBatch.overrideVertexType = Mesh.VertexDataType.VertexArray;"
+new_vertex_type = (
+    "SpriteBatch.overrideVertexType = "
+    "Gdx.app.getType() == com.badlogic.gdx.Application.ApplicationType.WebGL "
+    "? Mesh.VertexDataType.VertexBufferObject "
+    ": Mesh.VertexDataType.VertexArray;"
+)
+if old_vertex_type in text_input_text:
+    text_input_text = text_input_text.replace(old_vertex_type, new_vertex_type, 1)
+elif new_vertex_type not in text_input_text:
+    raise SystemExit("Could not locate SpriteBatch vertex type workaround")
+text_input.write_text(text_input_text, encoding="utf-8")
