@@ -34,3 +34,5 @@ with zipfile.ZipFile(archive, "w", compression=zipfile.ZIP_DEFLATED, compresslev
 
 print(f"Yandex bundle: {archive}")
 PY
+
+python3 "$ROOT/scripts/validate-yandex.py" "$ZIP"
