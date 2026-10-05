@@ -97,7 +97,8 @@ return {
   saveReady: root && root.getAttribute('data-spd-save-ready'),
   smokeLoaded: root && root.getAttribute('data-spd-smoke-loaded'),
   scene: root && root.getAttribute('data-spd-smoke-scene'),
-  javaFatal: root && root.getAttribute('data-spd-java-fatal')
+  javaFatal: root && root.getAttribute('data-spd-java-fatal'),
+  language: root && root.getAttribute('data-spd-smoke-language')
 };
 """
 
@@ -142,6 +143,7 @@ return {
             and state.get("gameplay") == "started"
             and state.get("saveReady") == "true"
             and state.get("smokeLoaded") == "false"
+            and state.get("language") == "ru"
         ),
     )
 
@@ -201,6 +203,39 @@ return {
         lambda state: (
             state.get("gameplay") == "started"
             and state.get("scene") == "com.shatteredpixel.shatteredpixeldungeon.scenes.GameScene"
+        ),
+        timeout=30,
+    )
+
+    # Exercise responsive layout at phone-like portrait and landscape sizes.
+    # This catches scene resets/font relayout bugs which are invisible in the
+    # default desktop viewport but matter for Yandex mobile distribution.
+    call(
+        "POST",
+        f"/session/{session_id}/window/rect",
+        {"width": 430, "height": 900},
+    )
+    wait_for_state(
+        "mobile portrait resize",
+        lambda state: (
+            state.get("gameplay") == "started"
+            and state.get("scene") == "com.shatteredpixel.shatteredpixeldungeon.scenes.GameScene"
+            and int(state.get("canvasHeight") or 0) > int(state.get("canvasWidth") or 0)
+        ),
+        timeout=30,
+    )
+
+    call(
+        "POST",
+        f"/session/{session_id}/window/rect",
+        {"width": 900, "height": 430},
+    )
+    wait_for_state(
+        "mobile landscape resize",
+        lambda state: (
+            state.get("gameplay") == "started"
+            and state.get("scene") == "com.shatteredpixel.shatteredpixeldungeon.scenes.GameScene"
+            and int(state.get("canvasWidth") or 0) > int(state.get("canvasHeight") or 0)
         ),
         timeout=30,
     )
