@@ -36,11 +36,32 @@ public final class WebLauncher {
         new WebApplication(game, config) {
             @Override
             protected void onError(Throwable error) {
-                YandexGamesSdk.smokeFatalError(error == null ? "unknown Java error" : error.toString());
+                YandexGamesSdk.smokeFatalError(describeThrowable(error));
                 super.onError(error);
             }
         };
 
         YandexGamesSdk.bindLifecycle(game::onYandexPause, game::onYandexResume);
+    }
+
+    private static String describeThrowable(Throwable error) {
+        if (error == null) {
+            return "unknown Java error";
+        }
+
+        StringBuilder result = new StringBuilder();
+        Throwable current = error;
+        int depth = 0;
+        while (current != null && depth++ < 8) {
+            if (result.length() > 0) {
+                result.append(" <- ");
+            }
+            result.append(current.getClass().getName());
+            if (current.getMessage() != null && !current.getMessage().isEmpty()) {
+                result.append(": ").append(current.getMessage());
+            }
+            current = current.getCause();
+        }
+        return result.toString();
     }
 }
