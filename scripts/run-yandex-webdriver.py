@@ -95,7 +95,9 @@ return {
   canvasWidth: canvas ? canvas.width : 0,
   canvasHeight: canvas ? canvas.height : 0,
   saveReady: root && root.getAttribute('data-spd-save-ready'),
-  smokeLoaded: root && root.getAttribute('data-spd-smoke-loaded')
+  smokeLoaded: root && root.getAttribute('data-spd-smoke-loaded'),
+  scene: root && root.getAttribute('data-spd-smoke-scene'),
+  javaFatal: root && root.getAttribute('data-spd-java-fatal')
 };
 """
 
@@ -119,7 +121,7 @@ return {
                 )
                 return
 
-            if last_state.get("error") or last_state.get("rejection"):
+            if last_state.get("error") or last_state.get("rejection") or last_state.get("javaFatal"):
                 raise RuntimeError(
                     "Browser runtime failure: "
                     + json.dumps(last_state, ensure_ascii=False, sort_keys=True)
