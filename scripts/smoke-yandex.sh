@@ -151,7 +151,7 @@ set +e
 python3 "$ROOT/scripts/run-yandex-webdriver.py" \
   "http://127.0.0.1:9515" \
   "$BROWSER" \
-  "http://127.0.0.1:$PORT/" \
+  "http://127.0.0.1:$PORT/?spd-smoke=1" \
   "$DOM_OUT"
 STATUS=$?
 set -e
