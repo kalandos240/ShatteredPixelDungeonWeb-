@@ -30,6 +30,15 @@ window.addEventListener('unhandledrejection', function (event) {
   var reason = event && event.reason ? String(event.reason) : 'unknown-rejection';
   document.documentElement.setAttribute('data-spd-smoke-rejection', reason);
 });
+window.addEventListener('load', function () {
+  document.documentElement.setAttribute('data-spd-load-event', 'true');
+  setTimeout(function () {
+    document.documentElement.setAttribute('data-spd-timeout', 'true');
+  }, 100);
+  requestAnimationFrame(function () {
+    document.documentElement.setAttribute('data-spd-raf', 'true');
+  });
+});
 </script>
 """
 html = html.replace("</head>", diagnostics + "</head>", 1)
@@ -132,6 +141,8 @@ if ! grep -q 'data-spd-game-ready="true"' "$DOM_OUT" \
   fi
   echo "--- Chrome log ---" >&2
   tail -200 "$CHROME_LOG" >&2 || true
+  echo "--- HTTP log tail ---" >&2
+  tail -120 "$ROOT/.work/yandex-smoke-http.log" >&2 || true
   echo "--- DOM tail ---" >&2
   tail -100 "$DOM_OUT" >&2 || true
   exit 1
