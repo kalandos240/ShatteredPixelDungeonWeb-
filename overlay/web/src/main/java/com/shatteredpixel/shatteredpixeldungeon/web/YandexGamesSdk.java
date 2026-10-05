@@ -50,7 +50,7 @@ public final class YandexGamesSdk {
             "  var lang = ysdk.environment && ysdk.environment.i18n" +
             "    ? ysdk.environment.i18n.lang : null;" +
             "  ready(lang || null);" +
-            "}).catch(function(error) {" +
+            "}, function(error) {" +
             "  console.error('[SPD Web] YaGames.init() failed', error);" +
             "  ready(null);" +
             "});")
