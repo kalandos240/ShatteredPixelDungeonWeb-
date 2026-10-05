@@ -5,7 +5,7 @@ plugins {
 }
 
 [compileJava, compileTestJava]*.options*.encoding = 'UTF-8'
-java.sourceCompatibility = java.targetCompatibility = appJavaCompatibility
+// gdx-teavm 1.6.1 web artifacts are published for Java 17.\n// Keep upstream/core on Java 11; only the browser platform module targets 17.\njava.sourceCompatibility = java.targetCompatibility = JavaVersion.VERSION_17
 
 dependencies {
     implementation project(':core')
