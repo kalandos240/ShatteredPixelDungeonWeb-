@@ -15,7 +15,7 @@ public final class WebLauncher {
     }
 
     public static void main(String[] args) {
-        YandexGamesSdk.init(WebLauncher::launch);
+        launch(YandexGamesSdk.init());
     }
 
     private static void launch(String languageCode) {
