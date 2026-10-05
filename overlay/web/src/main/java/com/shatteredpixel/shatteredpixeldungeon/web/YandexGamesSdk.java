@@ -111,6 +111,12 @@ public final class YandexGamesSdk {
             "}")
     public static native void smokeScene(String sceneName);
 
+    @JSBody(params = {"language"}, script =
+            "if (document && document.documentElement) {" +
+            "  document.documentElement.setAttribute('data-spd-smoke-language', language || 'unknown');" +
+            "}")
+    public static native void smokeLanguage(String language);
+
     @JSBody(params = {"message"}, script =
             "if (window.location && window.location.hostname === '127.0.0.1'" +
             "    && new URLSearchParams(window.location.search).get('spd-smoke') === '1'" +
