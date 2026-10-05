@@ -392,3 +392,54 @@ if old_actor_guard in rendered_text_source:
 elif new_actor_guard not in rendered_text_source:
     raise SystemExit("Could not locate RenderedText actor-thread guard")
 rendered_text.write_text(rendered_text_source, encoding="utf-8")
+
+
+# GameScene coordinates a real actor OS thread with Thread.wait()/notify() on
+# native platforms. TeaVM models Java threads as cooperative browser fibers.
+# Calling Thread.wait() while GameScene is being destroyed from the browser
+# requestAnimationFrame callback hits "Suspension point reached from
+# non-threading context". Browser JavaScript is single-threaded here, so an
+# interrupt is enough to stop/reschedule the actor fiber; never block the
+# render callback waiting for it.
+game_scene = root / "core/src/main/java/com/shatteredpixel/shatteredpixeldungeon/scenes/GameScene.java"
+game_scene_text = game_scene.read_text(encoding="utf-8")
+old_wait_for_actor = """\tpublic boolean waitForActorThread(int msToWait, boolean interrupt){
+\t\tif (actorThread == null || !actorThread.isAlive()) {
+\t\t\treturn true;
+\t\t}
+\t\tsynchronized (actorThread) {
+\t\t\tif (interrupt) actorThread.interrupt();
+\t\t\ttry {
+\t\t\t\tactorThread.wait(msToWait);
+\t\t\t} catch (InterruptedException e) {
+\t\t\t\tShatteredPixelDungeon.reportException(e);
+\t\t\t}
+\t\t\treturn !Actor.processing();
+\t\t}
+\t}"""
+new_wait_for_actor = """\tpublic boolean waitForActorThread(int msToWait, boolean interrupt){
+\t\tif (actorThread == null || !actorThread.isAlive()) {
+\t\t\treturn true;
+\t\t}
+
+\t\tif (Gdx.app.getType() == Application.ApplicationType.WebGL) {
+\t\t\tif (interrupt) actorThread.interrupt();
+\t\t\treturn true;
+\t\t}
+
+\t\tsynchronized (actorThread) {
+\t\t\tif (interrupt) actorThread.interrupt();
+\t\t\ttry {
+\t\t\t\tactorThread.wait(msToWait);
+\t\t\t} catch (InterruptedException e) {
+\t\t\t\tShatteredPixelDungeon.reportException(e);
+\t\t\t}
+\t\t\treturn !Actor.processing();
+\t\t}
+\t}"""
+
+if old_wait_for_actor in game_scene_text:
+    game_scene_text = game_scene_text.replace(old_wait_for_actor, new_wait_for_actor, 1)
+elif new_wait_for_actor not in game_scene_text:
+    raise SystemExit("Could not locate GameScene actor-thread wait block")
+game_scene.write_text(game_scene_text, encoding="utf-8")
