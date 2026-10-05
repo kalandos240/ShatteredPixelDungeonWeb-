@@ -340,3 +340,30 @@ elif new_get not in noosa_text:
     raise SystemExit("Could not locate NoosaScript.get()")
 
 noosa_script.write_text(noosa_text, encoding="utf-8")
+
+
+# TeaVM 0.15.0's JZlib-backed Deflater can return Z_BUF_ERROR (-5) while
+# finishing Shattered's GZIP save stream. Bundle.read already supports both
+# gzip and plain JSON, so write plain JSON only on WebGL and preserve gzip on
+# every native backend.
+bundle = root / "SPD-classes/src/main/java/com/watabou/utils/Bundle.java"
+bundle_text = bundle.read_text(encoding="utf-8")
+bundle_text = bundle_text.replace(
+    "package com.watabou.utils;\n\nimport com.watabou.noosa.Game;",
+    "package com.watabou.utils;\n\nimport com.badlogic.gdx.Application;\nimport com.badlogic.gdx.Gdx;\nimport com.watabou.noosa.Game;"
+)
+old_bundle_write = """\tpublic static boolean write( Bundle bundle, OutputStream stream ){
+\t\treturn write(bundle, stream, compressByDefault);
+\t}"""
+new_bundle_write = """\tpublic static boolean write( Bundle bundle, OutputStream stream ){
+\t\tboolean compress = compressByDefault;
+\t\tif (Gdx.app != null && Gdx.app.getType() == Application.ApplicationType.WebGL) {
+\t\t\tcompress = false;
+\t\t}
+\t\treturn write(bundle, stream, compress);
+\t}"""
+if old_bundle_write in bundle_text:
+    bundle_text = bundle_text.replace(old_bundle_write, new_bundle_write, 1)
+elif new_bundle_write not in bundle_text:
+    raise SystemExit("Could not locate Bundle.write default compression path")
+bundle.write_text(bundle_text, encoding="utf-8")
