@@ -146,6 +146,7 @@ public class WebShatteredPixelDungeon extends ShatteredPixelDungeon {
         reportSmokeGameState();
         reportSmokeHeroState();
         reportSmokeKeyboardTarget();
+        reportSmokeTouchTarget();
         maybeAdvanceSmokeFloor();
         maybeMoveSmokeHero();
     }
@@ -211,6 +212,33 @@ public class WebShatteredPixelDungeon extends ShatteredPixelDungeon {
                     && Actor.findChar(target) == null
                     && Dungeon.level.getTransition(target) == null) {
                 YandexGamesSdk.smokeKeyboardTarget(keys[i]);
+                return;
+            }
+        }
+    }
+
+    private void reportSmokeTouchTarget() {
+        if (!smokeMode || !(Game.scene() instanceof GameScene)
+                || Dungeon.hero == null || !Dungeon.hero.ready) {
+            return;
+        }
+
+        int start = Dungeon.hero.pos;
+        int width = Dungeon.level.width();
+        int[] candidates = {start + 1, start - 1, start + width, start - width};
+
+        for (int target : candidates) {
+            if (Dungeon.level.insideMap(target)
+                    && (Dungeon.level.passable[target] || Dungeon.level.avoid[target])
+                    && !Dungeon.level.pit[target]
+                    && Actor.findChar(target) == null
+                    && Dungeon.level.getTransition(target) == null) {
+                com.watabou.utils.PointF world =
+                        com.shatteredpixel.shatteredpixeldungeon.tiles.DungeonTilemap.tileToWorld(target)
+                                .offset(com.shatteredpixel.shatteredpixeldungeon.tiles.DungeonTilemap.SIZE / 2f);
+                com.watabou.utils.Point screen =
+                        com.watabou.noosa.Camera.main.cameraToScreen(world.x, world.y);
+                YandexGamesSdk.smokeTouchTarget(screen.x, screen.y);
                 return;
             }
         }
