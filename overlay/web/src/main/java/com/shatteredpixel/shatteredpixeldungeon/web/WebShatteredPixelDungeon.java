@@ -26,6 +26,7 @@ import com.watabou.utils.FileUtils;
 import com.watabou.utils.GameSettings;
 import org.teavm.jso.JSBody;
 
+import java.io.IOException;
 import java.util.Locale;
 
 public class WebShatteredPixelDungeon extends ShatteredPixelDungeon {
@@ -40,6 +41,7 @@ public class WebShatteredPixelDungeon extends ShatteredPixelDungeon {
     private boolean smokeAdvanceConsumed;
     private int smokeMoveStartPos = -1;
     private boolean platformPaused;
+    private boolean heroTurnInProgress;
     private boolean gameReadySent;
     private Boolean gameplayActive;
 
@@ -128,6 +130,8 @@ public class WebShatteredPixelDungeon extends ShatteredPixelDungeon {
 
         super.render();
 
+        autosaveCompletedHeroTurn();
+
         // Yandex Game Ready must be sent when the game is actually interactive,
         // not merely when the JavaScript bundle has downloaded.
         if (!gameReadySent && Game.scene() != null) {
@@ -149,6 +153,32 @@ public class WebShatteredPixelDungeon extends ShatteredPixelDungeon {
         reportSmokeTouchTarget();
         maybeAdvanceSmokeFloor();
         maybeMoveSmokeHero();
+    }
+
+    private void autosaveCompletedHeroTurn() {
+        if (!(Game.scene() instanceof GameScene) || Dungeon.hero == null) {
+            heroTurnInProgress = false;
+            return;
+        }
+
+        if (!Dungeon.hero.ready) {
+            heroTurnInProgress = true;
+            return;
+        }
+
+        if (!heroTurnInProgress) {
+            return;
+        }
+
+        heroTurnInProgress = false;
+        try {
+            Dungeon.saveAll();
+            if (smokeMode) {
+                YandexGamesSdk.smokeTurnSaved(Dungeon.hero.pos);
+            }
+        } catch (IOException error) {
+            ShatteredPixelDungeon.reportException(error);
+        }
     }
 
     private void startSmokeRun() {
