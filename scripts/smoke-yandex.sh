@@ -15,6 +15,27 @@ fi
 # The production archive loads /sdk.js from Yandex. For localhost smoke tests,
 # provide a minimal SDK-compatible mock after archive validation so the test
 # exercises the real Yandex initialization branch without shipping this file.
+python3 - "$DIST/index.html" <<'PY'
+from pathlib import Path
+import sys
+
+index = Path(sys.argv[1])
+html = index.read_text(encoding="utf-8")
+diagnostics = """<script>
+window.addEventListener('error', function (event) {
+  var message = event && event.message ? event.message : 'unknown-error';
+  document.documentElement.setAttribute('data-spd-smoke-error', message);
+});
+window.addEventListener('unhandledrejection', function (event) {
+  var reason = event && event.reason ? String(event.reason) : 'unknown-rejection';
+  document.documentElement.setAttribute('data-spd-smoke-rejection', reason);
+});
+</script>
+"""
+html = html.replace("</head>", diagnostics + "</head>", 1)
+index.write_text(html, encoding="utf-8")
+PY
+
 cat > "$DIST/sdk.js" <<'JS'
 (function () {
   const listeners = {};
@@ -83,6 +104,10 @@ timeout 90 "$BROWSER" \
   --no-first-run \
   --no-default-browser-check \
   --autoplay-policy=no-user-gesture-required \
+  --disable-background-timer-throttling \
+  --disable-backgrounding-occluded-windows \
+  --disable-renderer-backgrounding \
+  --run-all-compositor-stages-before-draw \
   --enable-unsafe-swiftshader \
   --use-gl=angle \
   --use-angle=swiftshader \
@@ -101,6 +126,10 @@ fi
 if ! grep -q 'data-spd-game-ready="true"' "$DOM_OUT" \
     || ! grep -q 'data-yandex-loading-ready="true"' "$DOM_OUT"; then
   echo "Browser smoke test did not reach Shattered Pixel Dungeon + Yandex LoadingAPI ready." >&2
+  if grep -q 'data-spd-smoke-error=' "$DOM_OUT" || grep -q 'data-spd-smoke-rejection=' "$DOM_OUT"; then
+    echo "Captured JavaScript runtime failure:" >&2
+    grep -o 'data-spd-smoke-\(error\|rejection\)="[^"]*"' "$DOM_OUT" >&2 || true
+  fi
   echo "--- Chrome log ---" >&2
   tail -200 "$CHROME_LOG" >&2 || true
   echo "--- DOM tail ---" >&2
