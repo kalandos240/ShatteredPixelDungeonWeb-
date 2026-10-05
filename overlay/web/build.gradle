@@ -10,6 +10,9 @@ plugins {
 dependencies {
     implementation project(':core')
 
+    // The upstream SPD-classes module keeps gdx-freetype as an implementation
+    // dependency, so its API is not exposed transitively to this launcher.
+    implementation "com.badlogicgames.gdx:gdx-freetype:$gdxVersion"
     implementation "com.github.xpenatan.gdx-teavm:gdx-freetype-web:1.6.1"
     implementation "com.github.xpenatan.gdx-teavm:gdx-controllers-web:1.6.1"
 }
