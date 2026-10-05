@@ -37,6 +37,8 @@ for _ in $(seq 1 50); do
   sleep 0.1
 done
 
+echo "Smoke browser: $("$BROWSER" --version 2>/dev/null || true)"
+
 set +e
 timeout 90 "$BROWSER" \
   --headless=new \
@@ -46,7 +48,8 @@ timeout 90 "$BROWSER" \
   --no-default-browser-check \
   --autoplay-policy=no-user-gesture-required \
   --enable-unsafe-swiftshader \
-  --use-gl=swiftshader \
+  --use-gl=angle \
+  --use-angle=swiftshader \
   --virtual-time-budget=30000 \
   --dump-dom "http://127.0.0.1:$PORT/" \
   >"$DOM_OUT" 2>"$CHROME_LOG"
