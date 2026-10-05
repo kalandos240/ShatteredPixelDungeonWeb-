@@ -24,6 +24,11 @@ public final class WebLauncher {
         config.height = 0;
         config.showDownloadLogs = false;
 
+        // Keep Shattered's settings and IndexedDB save files isolated from
+        // other web apps that may share the same origin.
+        config.storagePrefix = "shattered-pixel-dungeon";
+        config.localStoragePrefix = "shattered-pixel-dungeon-files";
+
         // gdx-freetype-web resolves scripts relative to its scripts/ folder.
         config.preloadListener = assetLoader -> assetLoader.loadScript("freetype.js");
 
