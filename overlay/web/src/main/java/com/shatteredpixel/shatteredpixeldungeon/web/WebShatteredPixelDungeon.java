@@ -145,6 +145,7 @@ public class WebShatteredPixelDungeon extends ShatteredPixelDungeon {
         }
         reportSmokeGameState();
         reportSmokeHeroState();
+        reportSmokeKeyboardTarget();
         maybeAdvanceSmokeFloor();
         maybeMoveSmokeHero();
     }
@@ -188,6 +189,30 @@ public class WebShatteredPixelDungeon extends ShatteredPixelDungeon {
     private void reportSmokeHeroState() {
         if (smokeMode && Game.scene() instanceof GameScene && Dungeon.hero != null) {
             YandexGamesSdk.smokeHeroState(Dungeon.hero.pos, Dungeon.hero.ready);
+        }
+    }
+
+    private void reportSmokeKeyboardTarget() {
+        if (!smokeMode || !(Game.scene() instanceof GameScene)
+                || Dungeon.hero == null || !Dungeon.hero.ready) {
+            return;
+        }
+
+        int start = Dungeon.hero.pos;
+        int width = Dungeon.level.width();
+        int[] candidates = {start + 1, start - 1, start + width, start - width};
+        String[] keys = {"RIGHT", "LEFT", "DOWN", "UP"};
+
+        for (int i = 0; i < candidates.length; i++) {
+            int target = candidates[i];
+            if (Dungeon.level.insideMap(target)
+                    && (Dungeon.level.passable[target] || Dungeon.level.avoid[target])
+                    && !Dungeon.level.pit[target]
+                    && Actor.findChar(target) == null
+                    && Dungeon.level.getTransition(target) == null) {
+                YandexGamesSdk.smokeKeyboardTarget(keys[i]);
+                return;
+            }
         }
     }
 
