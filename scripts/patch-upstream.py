@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 from pathlib import Path
+import shutil
 import sys
 
 if len(sys.argv) != 2:
@@ -120,3 +121,15 @@ device_compat_text = device_compat_text.replace(
 \t}"""
 )
 device_compat.write_text(device_compat_text, encoding="utf-8")
+
+
+# The desktop/iOS platform support uses Droid Sans for CJK glyph coverage, but
+# upstream keeps the binary font under desktop assets instead of core assets.
+# Copy it into the generated web asset tree without duplicating the 3.6 MB font
+# in this overlay repository.
+web_font_source = root / "desktop/src/main/assets/fonts/droid_sans.ttf"
+web_font_target = root / "core/src/main/assets/fonts/droid_sans.ttf"
+if not web_font_source.is_file():
+    raise SystemExit(f"Missing upstream fallback font: {web_font_source}")
+web_font_target.parent.mkdir(parents=True, exist_ok=True)
+shutil.copyfile(web_font_source, web_font_target)
