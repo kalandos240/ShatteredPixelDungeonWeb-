@@ -2,7 +2,9 @@
 
 Web/Yandex Games port of **Shattered Pixel Dungeon**.
 
-This repository is being built as a reproducible port overlay over the official upstream source so the browser-specific code can evolve independently while upstream stays pinned and auditable.
+This repository is a reproducible browser-port overlay over the official
+upstream source. The upstream game stays pinned and auditable while web-only
+compatibility changes live here.
 
 ## Upstream baseline
 
@@ -11,18 +13,23 @@ This repository is being built as a reproducible port overlay over the official 
 - Commit: `e9defd0444c96d2fce3de5ec297c3398be8b7c55`
 - License: GPL-3.0-or-later
 
-## Current port milestone
+## Current status
 
-The first milestone establishes:
+The TeaVM/WebGL port now builds and passes an automated Chromium gameplay
+smoke test. CI creates a fresh run, reaches `GameScene`, writes its save to
+IndexedDB, reloads the page, restores the same run, and verifies Yandex
+pause/resume + Gameplay API behavior.
 
-- reproducible checkout of the pinned upstream source;
-- a libGDX browser target through **gdx-teavm**;
-- browser FreeType/controller backends;
-- browser-local save/preferences plumbing;
-- Yandex Games SDK bootstrap and `LoadingAPI.ready()` signalling;
-- a build task that produces a Yandex-ready static bundle.
+The Yandex bundle also includes:
 
-The browser port uses libGDX 1.14.2 together with gdx-teavm 1.6.1. The upstream project currently uses libGDX 1.14.0, so the preparation script applies the small version bump only inside the generated worktree.
+- browser FreeType and the required fallback fonts;
+- Yandex SDK bootstrap and `LoadingAPI.ready()`;
+- automatic first-run language selection from the Yandex environment;
+- browser-safe WebGL rendering compatibility patches;
+- archive validation against the current Yandex packaging rules.
+
+The current validated archive is roughly 79.5 MB uncompressed, below the
+100 MB Yandex Games limit.
 
 ## Build flow
 
@@ -31,12 +38,15 @@ The browser port uses libGDX 1.14.2 together with gdx-teavm 1.6.1. The upstream 
 ./scripts/build-yandex.sh
 ```
 
-The generated upstream worktree lives under `.work/` and is intentionally not committed. Port-specific source files live in `overlay/`.
+The generated upstream worktree lives under `.work/` and is intentionally
+not committed. Port-specific source files live in `overlay/`.
 
-## Status
-
-This is an active port. The initial target is a compiling/runnable title/menu build in a browser; save compatibility, audio, input edge-cases, ads, cloud saves, leaderboards and production moderation integration are handled as subsequent milestones.
+For the detailed compatibility history and remaining milestones, see
+`docs/PORTING.md`.
 
 ## License / modification notice
 
-Shattered Pixel Dungeon is licensed under the GNU GPL v3 or later. This repository contains web-port modifications made in 2026 and is distributed under the same license terms. See `LICENSE.txt` and the upstream project for original copyright notices.
+Shattered Pixel Dungeon is licensed under the GNU GPL v3 or later. This
+repository contains web-port modifications made in 2026 and is distributed
+under the same license terms. See `LICENSE.txt` and the upstream project for
+original copyright notices.
