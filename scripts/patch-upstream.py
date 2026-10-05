@@ -38,3 +38,33 @@ elif new not in build_text:
     raise SystemExit("Could not locate the expected upstream gdxVersion declaration")
 
 build.write_text(build_text, encoding="utf-8")
+
+
+# libGDX 1.14.1+ changed TextField.OnscreenKeyboard from show(boolean)
+# to show(TextField) + close(). Adapt Shattered's platform delegation.
+text_input = root / "SPD-classes/src/main/java/com/watabou/noosa/TextInput.java"
+text_input_text = text_input.read_text(encoding="utf-8")
+old_keyboard = """\t\ttextField.setOnscreenKeyboard(new TextField.OnscreenKeyboard() {
+\t\t\t@Override
+\t\t\tpublic void show(boolean visible) {
+\t\t\t\tGame.platform.setOnscreenKeyboardVisible(visible, multiline);
+\t\t\t}
+\t\t});"""
+new_keyboard = """\t\ttextField.setOnscreenKeyboard(new TextField.OnscreenKeyboard() {
+\t\t\t@Override
+\t\t\tpublic void show(TextField textField) {
+\t\t\t\tGame.platform.setOnscreenKeyboardVisible(true, multiline);
+\t\t\t}
+
+\t\t\t@Override
+\t\t\tpublic void close() {
+\t\t\t\tGame.platform.setOnscreenKeyboardVisible(false, multiline);
+\t\t\t}
+\t\t});"""
+
+if old_keyboard in text_input_text:
+    text_input_text = text_input_text.replace(old_keyboard, new_keyboard, 1)
+elif new_keyboard not in text_input_text:
+    raise SystemExit("Could not locate TextField.OnscreenKeyboard compatibility block")
+
+text_input.write_text(text_input_text, encoding="utf-8")
