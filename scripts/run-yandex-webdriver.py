@@ -55,7 +55,6 @@ try:
                             "--disable-dev-shm-usage",
                             "--no-first-run",
                             "--no-default-browser-check",
-                            "--autoplay-policy=no-user-gesture-required",
                             "--disable-background-timer-throttling",
                             "--disable-backgrounding-occluded-windows",
                             "--disable-renderer-backgrounding",
