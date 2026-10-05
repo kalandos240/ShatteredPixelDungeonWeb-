@@ -93,37 +93,70 @@ return {
   raf: root && root.getAttribute('data-spd-raf'),
   readyState: document.readyState,
   canvasWidth: canvas ? canvas.width : 0,
-  canvasHeight: canvas ? canvas.height : 0
+  canvasHeight: canvas ? canvas.height : 0,
+  saveReady: root && root.getAttribute('data-spd-save-ready'),
+  smokeLoaded: root && root.getAttribute('data-spd-smoke-loaded')
 };
 """
 
-    deadline = time.monotonic() + 90
-    while time.monotonic() < deadline:
-        try:
-            last_state = call(
-                "POST",
-                f"/session/{session_id}/execute/sync",
-                {"script": state_script, "args": []},
-            )["value"]
-        except Exception as error:
-            last_state = {"webdriverError": str(error)}
+    def wait_for_state(label, predicate, timeout=120):
+        global last_state
+        deadline = time.monotonic() + timeout
+        while time.monotonic() < deadline:
+            try:
+                last_state = call(
+                    "POST",
+                    f"/session/{session_id}/execute/sync",
+                    {"script": state_script, "args": []},
+                )["value"]
+            except Exception as error:
+                last_state = {"webdriverError": str(error)}
 
-        if last_state.get("ready") == "true" and last_state.get("yandexReady") == "true":
-            print("Browser smoke state: " + json.dumps(last_state, ensure_ascii=False, sort_keys=True))
-            break
+            if predicate(last_state):
+                print(
+                    f"Browser smoke state ({label}): "
+                    + json.dumps(last_state, ensure_ascii=False, sort_keys=True)
+                )
+                return
 
-        if last_state.get("error") or last_state.get("rejection"):
-            raise RuntimeError(
-                "Browser runtime failure: "
-                + json.dumps(last_state, ensure_ascii=False, sort_keys=True)
-            )
+            if last_state.get("error") or last_state.get("rejection"):
+                raise RuntimeError(
+                    "Browser runtime failure: "
+                    + json.dumps(last_state, ensure_ascii=False, sort_keys=True)
+                )
 
-        time.sleep(0.5)
-    else:
+            time.sleep(0.5)
+
         raise RuntimeError(
-            "Timed out waiting for Game Ready + LoadingAPI.ready(): "
+            f"Timed out waiting for {label}: "
             + json.dumps(last_state, ensure_ascii=False, sort_keys=True)
         )
+
+    wait_for_state(
+        "first GameScene + save",
+        lambda state: (
+            state.get("ready") == "true"
+            and state.get("yandexReady") == "true"
+            and state.get("gameplay") == "started"
+            and state.get("saveReady") == "true"
+            and state.get("smokeLoaded") == "false"
+        ),
+    )
+
+    # Reload the same origin. gdx-teavm rehydrates local files from IndexedDB
+    # before the application listener starts, so smoke mode must now choose
+    # CONTINUE and restore the serialized run instead of creating a new one.
+    call("POST", f"/session/{session_id}/refresh", {})
+    wait_for_state(
+        "reloaded GameScene from IndexedDB save",
+        lambda state: (
+            state.get("ready") == "true"
+            and state.get("yandexReady") == "true"
+            and state.get("gameplay") == "started"
+            and state.get("saveReady") == "true"
+            and state.get("smokeLoaded") == "true"
+        ),
+    )
 
 finally:
     if session_id is not None:
