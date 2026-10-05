@@ -71,7 +71,7 @@ cat > "$DIST/sdk.js" <<'JS'
 (function () {
   const listeners = {};
   const ysdk = {
-    environment: { i18n: { lang: "en" } },
+    environment: { i18n: { lang: "ru" } },
     features: {
       LoadingAPI: {
         ready: function () {
