@@ -97,4 +97,11 @@ public final class YandexGamesSdk {
             "  ysdk.features.GameplayAPI.stop();" +
             "}")
     public static native void gameplayStop();
+
+    @JSBody(params = {"loadedExisting", "saveReady"}, script =
+            "if (document && document.documentElement) {" +
+            "  document.documentElement.setAttribute('data-spd-save-ready', saveReady ? 'true' : 'false');" +
+            "  document.documentElement.setAttribute('data-spd-smoke-loaded', loadedExisting ? 'true' : 'false');" +
+            "}")
+    public static native void smokeGameSceneReady(boolean loadedExisting, boolean saveReady);
 }
