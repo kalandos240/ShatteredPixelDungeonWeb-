@@ -180,6 +180,101 @@ return {
         ),
     )
 
+    cloud_probe_script = r"""
+const done = arguments[arguments.length - 1];
+(async function () {
+  try {
+    const request = indexedDB.open('shattered-pixel-dungeon-files', 1);
+    const db = await new Promise((resolve, reject) => {
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error || new Error('IndexedDB open failed'));
+    });
+
+    const records = await new Promise((resolve, reject) => {
+      const out = [];
+      const tx = db.transaction('FILE_DATA', 'readonly');
+      const store = tx.objectStore('FILE_DATA');
+      const cursorRequest = store.openCursor();
+      cursorRequest.onsuccess = () => {
+        const cursor = cursorRequest.result;
+        if (!cursor) return;
+        const key = String(cursor.key);
+        if (key === 'game1' || key.startsWith('game1/')) {
+          const value = cursor.value || {};
+          let bytes = new Uint8Array(0);
+          if (value.contents) {
+            bytes = new Uint8Array(
+              value.contents.buffer,
+              value.contents.byteOffset || 0,
+              value.contents.byteLength || value.contents.length || 0
+            );
+          }
+          out.push({key, type: Number(value.type || 0), bytes: new Uint8Array(bytes)});
+        }
+        cursor.continue();
+      };
+      tx.oncomplete = () => resolve(out);
+      tx.onerror = () => reject(tx.error || new Error('IndexedDB read failed'));
+      tx.onabort = () => reject(tx.error || new Error('IndexedDB read aborted'));
+    });
+
+    db.close();
+
+    records.sort((a, b) => a.key.localeCompare(b.key));
+    const encoder = new TextEncoder();
+    let rawBytes = 0;
+    let packedBytes = 12;
+    const encodedKeys = [];
+    for (const record of records) {
+      const keyBytes = encoder.encode(record.key);
+      encodedKeys.push(keyBytes);
+      rawBytes += record.bytes.length;
+      packedBytes += 2 + 1 + 4 + keyBytes.length + record.bytes.length;
+    }
+
+    const packed = new Uint8Array(packedBytes);
+    const magic = encoder.encode('SPDCLOUD1\n');
+    packed.set(magic, 0);
+    let offset = 12;
+    const view = new DataView(packed.buffer);
+    for (let i = 0; i < records.length; i++) {
+      const record = records[i];
+      const keyBytes = encodedKeys[i];
+      view.setUint16(offset, keyBytes.length, true); offset += 2;
+      packed[offset++] = record.type & 0xff;
+      view.setUint32(offset, record.bytes.length, true); offset += 4;
+      packed.set(keyBytes, offset); offset += keyBytes.length;
+      packed.set(record.bytes, offset); offset += record.bytes.length;
+    }
+
+    if (typeof CompressionStream !== 'function') {
+      done({files: records.length, rawBytes, packedBytes, gzipBytes: null, base64Bytes: null});
+      return;
+    }
+
+    const compressedBuffer = await new Response(
+      new Blob([packed]).stream().pipeThrough(new CompressionStream('gzip'))
+    ).arrayBuffer();
+    const gzipBytes = compressedBuffer.byteLength;
+    const base64Bytes = Math.ceil(gzipBytes / 3) * 4;
+    done({files: records.length, rawBytes, packedBytes, gzipBytes, base64Bytes});
+  } catch (error) {
+    done({error: String(error && (error.stack || error.message) || error)});
+  }
+})();
+"""
+    cloud_probe = call(
+        "POST",
+        f"/session/{session_id}/execute/async",
+        {"script": cloud_probe_script, "args": []},
+    )["value"]
+    if cloud_probe.get("error"):
+        raise RuntimeError("Cloud-save size probe failed: " + cloud_probe["error"])
+    print(
+        "Cloud-save size probe (slot 1): "
+        + json.dumps(cloud_probe, ensure_ascii=False, sort_keys=True)
+    )
+
     start_pos = last_state["heroPos"]
     call(
         "POST",
