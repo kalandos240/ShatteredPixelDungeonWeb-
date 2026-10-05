@@ -121,6 +121,12 @@ public final class YandexGamesSdk {
             "}")
     public static native void smokeHeroState(int position, boolean ready);
 
+    @JSBody(params = {"bytes"}, script =
+            "if (document && document.documentElement) {" +
+            "  document.documentElement.setAttribute('data-spd-smoke-save-bytes', String(bytes));" +
+            "}")
+    public static native void smokeSaveBytes(int bytes);
+
     @JSBody(params = {"heroPos"}, script =
             "if (document && document.documentElement) {" +
             "  document.documentElement.setAttribute('data-spd-smoke-turn-saved', String(heroPos));" +
