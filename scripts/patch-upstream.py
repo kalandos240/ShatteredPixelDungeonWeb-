@@ -367,3 +367,28 @@ if old_bundle_write in bundle_text:
 elif new_bundle_write not in bundle_text:
     raise SystemExit("Could not locate Bundle.write default compression path")
 bundle.write_text(bundle_text, encoding="utf-8")
+
+
+# Native Shattered forbids font measurement on its real actor OS thread because
+# font generation touches graphics state owned by the render thread. TeaVM's
+# JavaScript threads are cooperative fibers on the browser event loop, so this
+# native-thread guard produces false positives after restoring a run.
+rendered_text = root / "SPD-classes/src/main/java/com/watabou/noosa/RenderedText.java"
+rendered_text_source = rendered_text.read_text(encoding="utf-8")
+rendered_text_source = rendered_text_source.replace(
+    "import com.badlogic.gdx.graphics.Color;",
+    "import com.badlogic.gdx.Application;\nimport com.badlogic.gdx.Gdx;\nimport com.badlogic.gdx.graphics.Color;",
+    1
+)
+old_actor_guard = """\t\tif (Thread.currentThread().getName().equals("SHPD Actor Thread")){
+\t\t\tthrow new RuntimeException("Text measured from the actor thread!");
+\t\t}"""
+new_actor_guard = """\t\tif (Gdx.app.getType() != Application.ApplicationType.WebGL
+\t\t\t\t&& Thread.currentThread().getName().equals("SHPD Actor Thread")){
+\t\t\tthrow new RuntimeException("Text measured from the actor thread!");
+\t\t}"""
+if old_actor_guard in rendered_text_source:
+    rendered_text_source = rendered_text_source.replace(old_actor_guard, new_actor_guard, 1)
+elif new_actor_guard not in rendered_text_source:
+    raise SystemExit("Could not locate RenderedText actor-thread guard")
+rendered_text.write_text(rendered_text_source, encoding="utf-8")
