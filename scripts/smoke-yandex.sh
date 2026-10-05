@@ -26,13 +26,24 @@ import sys
 index = Path(sys.argv[1])
 html = index.read_text(encoding="utf-8")
 diagnostics = """<script>
+function spdSmokeText(value) {
+  return String(value == null ? '' : value)
+      .replace(/[\r\n\t]+/g, ' ')
+      .slice(0, 6000);
+}
 window.addEventListener('error', function (event) {
   var message = event && event.message ? event.message : 'unknown-error';
-  document.documentElement.setAttribute('data-spd-smoke-error', message);
+  document.documentElement.setAttribute('data-spd-smoke-error', spdSmokeText(message));
+  if (event && event.error && event.error.stack) {
+    document.documentElement.setAttribute('data-spd-smoke-stack', spdSmokeText(event.error.stack));
+  }
 });
 window.addEventListener('unhandledrejection', function (event) {
-  var reason = event && event.reason ? String(event.reason) : 'unknown-rejection';
-  document.documentElement.setAttribute('data-spd-smoke-rejection', reason);
+  var reason = event && event.reason ? event.reason : 'unknown-rejection';
+  document.documentElement.setAttribute('data-spd-smoke-rejection', spdSmokeText(reason));
+  if (reason && reason.stack) {
+    document.documentElement.setAttribute('data-spd-smoke-stack', spdSmokeText(reason.stack));
+  }
 });
 window.addEventListener('load', function () {
   document.documentElement.setAttribute('data-spd-load-event', 'true');
@@ -141,7 +152,7 @@ if ! grep -q 'data-spd-game-ready="true"' "$DOM_OUT" \
   echo "Browser smoke test did not reach Shattered Pixel Dungeon + Yandex LoadingAPI ready." >&2
   if grep -q 'data-spd-smoke-error=' "$DOM_OUT" || grep -q 'data-spd-smoke-rejection=' "$DOM_OUT"; then
     echo "Captured JavaScript runtime failure:" >&2
-    grep -o 'data-spd-smoke-\(error\|rejection\)="[^"]*"' "$DOM_OUT" >&2 || true
+    grep -o 'data-spd-smoke-\(error\|rejection\|stack\)="[^"]*"' "$DOM_OUT" >&2 || true
   fi
   echo "--- Chrome log ---" >&2
   tail -200 "$CHROME_LOG" >&2 || true
