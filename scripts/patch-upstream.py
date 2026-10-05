@@ -38,6 +38,20 @@ if old in build_text:
 elif new not in build_text:
     raise SystemExit("Could not locate the expected upstream gdxVersion declaration")
 
+# Upstream's derivative-build guide requires a distinct application name and
+# package identity. Keep the original credits/copyright notices, but make this
+# browser distribution distinguishable from Evan Debenham's official builds.
+build_text = build_text.replace(
+    "appName = 'Shattered Pixel Dungeon'",
+    "appName = 'Shattered Pixel Dungeon Web'",
+    1
+)
+build_text = build_text.replace(
+    "appPackageName = 'com.shatteredpixel.shatteredpixeldungeon'",
+    "appPackageName = 'com.kalandos240.shatteredpixeldungeonweb'",
+    1
+)
+
 build.write_text(build_text, encoding="utf-8")
 
 
