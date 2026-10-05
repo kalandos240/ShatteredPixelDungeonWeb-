@@ -99,7 +99,9 @@ return {
   scene: root && root.getAttribute('data-spd-smoke-scene'),
   javaFatal: root && root.getAttribute('data-spd-java-fatal'),
   language: root && root.getAttribute('data-spd-smoke-language'),
-  depth: root && root.getAttribute('data-spd-smoke-depth')
+  depth: root && root.getAttribute('data-spd-smoke-depth'),
+  heroPos: root && root.getAttribute('data-spd-smoke-hero-pos'),
+  heroReady: root && root.getAttribute('data-spd-smoke-hero-ready')
 };
 """
 
@@ -165,10 +167,35 @@ return {
             and state.get("smokeLoaded") == "false"
             and state.get("scene") == "com.shatteredpixel.shatteredpixeldungeon.scenes.GameScene"
             and state.get("depth") == "2"
+            and state.get("heroReady") == "true"
+            and state.get("heroPos") is not None
         ),
     )
 
-    # Reload the same origin. gdx-teavm rehydrates local files from IndexedDB
+    start_pos = last_state["heroPos"]
+    call(
+        "POST",
+        f"/session/{session_id}/execute/sync",
+        {
+            "script": "window.__spdSmokeMove = true; return true;",
+            "args": [],
+        },
+    )
+    wait_for_state(
+        "hero movement through actor fiber",
+        lambda state: (
+            state.get("depth") == "2"
+            and state.get("heroReady") == "true"
+            and state.get("heroPos") is not None
+            and state.get("heroPos") != start_pos
+        ),
+        timeout=30,
+    )
+    moved_pos = last_state["heroPos"]
+
+    # Reload the same origin. pagehide triggers Shattered's normal pause/save
+    # path, then gdx-teavm rehydrates local files from IndexedDB before the
+    # application listener starts. The restored hero must keep the moved tile.
     # before the application listener starts, so smoke mode must now choose
     # CONTINUE and restore the serialized run instead of creating a new one.
     call("POST", f"/session/{session_id}/refresh", {})
@@ -181,6 +208,8 @@ return {
             and state.get("saveReady") == "true"
             and state.get("smokeLoaded") == "true"
             and state.get("depth") == "2"
+            and state.get("heroReady") == "true"
+            and state.get("heroPos") == moved_pos
         ),
     )
 
