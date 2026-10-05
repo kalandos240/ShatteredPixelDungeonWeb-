@@ -15,16 +15,21 @@ public final class WebLauncher {
     }
 
     public static void main(String[] args) {
-        YandexGamesSdk.init();
+        YandexGamesSdk.init(WebLauncher::launch);
+    }
 
+    private static void launch(String languageCode) {
         WebApplicationConfiguration config = new WebApplicationConfiguration("canvas");
         config.width = 0;
         config.height = 0;
         config.showDownloadLogs = false;
 
-        // gdx-freetype-web ships its browser runtime as this support script.
+        // gdx-freetype-web resolves scripts relative to its scripts/ folder.
         config.preloadListener = assetLoader -> assetLoader.loadScript("freetype.js");
 
-        new WebApplication(new WebShatteredPixelDungeon(), config);
+        WebShatteredPixelDungeon game = new WebShatteredPixelDungeon(languageCode);
+        new WebApplication(game, config);
+
+        YandexGamesSdk.bindLifecycle(game::onYandexPause, game::onYandexResume);
     }
 }
