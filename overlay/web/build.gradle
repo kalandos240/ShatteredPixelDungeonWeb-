@@ -1,0 +1,68 @@
+import org.teavm.gradle.api.OptimizationLevel
+
+plugins {
+    id 'com.github.xpenatan.gdx-teavm' version '1.6.1'
+}
+
+[compileJava, compileTestJava]*.options*.encoding = 'UTF-8'
+java.sourceCompatibility = java.targetCompatibility = appJavaCompatibility
+
+dependencies {
+    implementation project(':core')
+
+    implementation "com.github.xpenatan.gdx-teavm:gdx-freetype-web:1.6.1"
+    implementation "com.github.xpenatan.gdx-teavm:gdx-controllers-web:1.6.1"
+}
+
+gdxTeaVM {
+    assets.from(file("../core/src/main/assets"))
+
+    // Shattered serializes many concrete game classes by runtime class name.
+    // Broad registration is intentional for the first compatibility milestone.
+    reflection("com.shatteredpixel.shatteredpixeldungeon.**")
+    reflection("com.watabou.**")
+
+    js {
+        mainClass.set("com.shatteredpixel.shatteredpixeldungeon.web.WebLauncher")
+        htmlTitle.set(appName)
+        htmlWidth.set(1280)
+        htmlHeight.set(720)
+        targetFileName.set("shattered-pixel-dungeon.js")
+        optimization.set(OptimizationLevel.BALANCED)
+        obfuscated.set(false)
+    }
+}
+
+tasks.register('yandexDist') {
+    dependsOn 'gdx_teavm_web_js_build'
+
+    doLast {
+        def generatedRoot = file("$buildDir/dist/js/webapp")
+        if (!generatedRoot.isDirectory()) {
+            throw new GradleException("TeaVM web output not found: $generatedRoot")
+        }
+
+        def yandexRoot = file("$buildDir/yandex")
+        delete yandexRoot
+        copy {
+            from generatedRoot
+            into yandexRoot
+        }
+
+        def index = file("$yandexRoot/index.html")
+        if (!index.isFile()) {
+            throw new GradleException("Generated web build has no index.html")
+        }
+
+        def html = index.getText('UTF-8')
+        if (!html.contains('src="/sdk.js"')) {
+            html = html.replace(
+                    '</head>',
+                    '''        <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+        <!-- Yandex Games SDK loader. Must be loaded before YaGames.init(). -->
+        <script src="/sdk.js"></script>
+    </head>''')
+        }
+        index.write(html, 'UTF-8')
+    }
+}
