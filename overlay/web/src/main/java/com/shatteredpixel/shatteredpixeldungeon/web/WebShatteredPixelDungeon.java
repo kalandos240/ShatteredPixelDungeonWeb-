@@ -132,6 +132,9 @@ public class WebShatteredPixelDungeon extends ShatteredPixelDungeon {
         }
 
         syncGameplayState();
+        if (smokeMode && Game.scene() != null) {
+            YandexGamesSdk.smokeScene(Game.scene().getClass().getName());
+        }
         reportSmokeGameState();
     }
 
