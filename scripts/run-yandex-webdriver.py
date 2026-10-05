@@ -94,6 +94,8 @@ return {
   readyState: document.readyState,
   canvasWidth: canvas ? canvas.width : 0,
   canvasHeight: canvas ? canvas.height : 0,
+  innerWidth: window.innerWidth || 0,
+  innerHeight: window.innerHeight || 0,
   saveReady: root && root.getAttribute('data-spd-save-ready'),
   smokeLoaded: root && root.getAttribute('data-spd-smoke-loaded'),
   scene: root && root.getAttribute('data-spd-smoke-scene'),
@@ -149,6 +151,8 @@ return {
             and state.get("smokeLoaded") == "false"
             and state.get("language") == "ru"
             and state.get("depth") == "1"
+            and int(state.get("canvasWidth") or 0) == int(state.get("innerWidth") or -1)
+            and int(state.get("canvasHeight") or 0) == int(state.get("innerHeight") or -1)
         ),
     )
 
@@ -337,6 +341,8 @@ return {
             state.get("gameplay") == "started"
             and state.get("scene") == "com.shatteredpixel.shatteredpixeldungeon.scenes.GameScene"
             and int(state.get("canvasHeight") or 0) > int(state.get("canvasWidth") or 0)
+            and int(state.get("canvasWidth") or 0) == int(state.get("innerWidth") or -1)
+            and int(state.get("canvasHeight") or 0) == int(state.get("innerHeight") or -1)
         ),
         timeout=30,
     )
@@ -352,6 +358,8 @@ return {
             state.get("gameplay") == "started"
             and state.get("scene") == "com.shatteredpixel.shatteredpixeldungeon.scenes.GameScene"
             and int(state.get("canvasWidth") or 0) > int(state.get("canvasHeight") or 0)
+            and int(state.get("canvasWidth") or 0) == int(state.get("innerWidth") or -1)
+            and int(state.get("canvasHeight") or 0) == int(state.get("innerHeight") or -1)
         ),
         timeout=30,
     )
