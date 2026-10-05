@@ -104,4 +104,18 @@ public final class YandexGamesSdk {
             "  document.documentElement.setAttribute('data-spd-smoke-loaded', loadedExisting ? 'true' : 'false');" +
             "}")
     public static native void smokeGameSceneReady(boolean loadedExisting, boolean saveReady);
+
+    @JSBody(params = {"sceneName"}, script =
+            "if (document && document.documentElement) {" +
+            "  document.documentElement.setAttribute('data-spd-smoke-scene', sceneName || 'unknown');" +
+            "}")
+    public static native void smokeScene(String sceneName);
+
+    @JSBody(params = {"message"}, script =
+            "if (window.location && window.location.hostname === '127.0.0.1'" +
+            "    && new URLSearchParams(window.location.search).get('spd-smoke') === '1'" +
+            "    && document && document.documentElement) {" +
+            "  document.documentElement.setAttribute('data-spd-java-fatal', message || 'unknown Java error');" +
+            "}")
+    public static native void smokeFatalError(String message);
 }
