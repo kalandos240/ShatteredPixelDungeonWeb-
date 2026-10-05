@@ -68,3 +68,19 @@ elif new_keyboard not in text_input_text:
     raise SystemExit("Could not locate TextField.OnscreenKeyboard compatibility block")
 
 text_input.write_text(text_input_text, encoding="utf-8")
+
+
+# TeaVM needs substantially more heap than the regular JVM/Android build when
+# compiling Shattered's large class graph. Keep the compiler inside the memory
+# budget of the standard GitHub runner and avoid parallel Gradle workers.
+gradle_properties = root / "gradle.properties"
+gradle_properties_text = gradle_properties.read_text(encoding="utf-8")
+gradle_properties_text = gradle_properties_text.replace(
+    "org.gradle.jvmargs=-Xmx2048m -XX:MaxMetaspaceSize=512m -XX:+HeapDumpOnOutOfMemoryError -Dfile.encoding=UTF-8",
+    "org.gradle.jvmargs=-Xmx4096m -XX:MaxMetaspaceSize=1024m -XX:+HeapDumpOnOutOfMemoryError -Dfile.encoding=UTF-8"
+)
+gradle_properties_text = gradle_properties_text.replace(
+    "org.gradle.parallel=true",
+    "org.gradle.parallel=false"
+)
+gradle_properties.write_text(gradle_properties_text, encoding="utf-8")
