@@ -148,6 +148,7 @@ public class WebShatteredPixelDungeon extends ShatteredPixelDungeon {
             YandexGamesSdk.smokeScene(Game.scene().getClass().getName());
         }
         reportSmokeGameState();
+        reportSmokeSaveSize();
         reportSmokeHeroState();
         reportSmokeKeyboardTarget();
         reportSmokeTouchTarget();
@@ -215,6 +216,19 @@ public class WebShatteredPixelDungeon extends ShatteredPixelDungeon {
             smokeReportedDepth = Dungeon.depth;
             YandexGamesSdk.smokeGameSceneReady(smokeLoadedExisting, true, Dungeon.depth);
         }
+    }
+
+    private void reportSmokeSaveSize() {
+        if (!smokeMode || GamesInProgress.curSlot <= 0) {
+            return;
+        }
+
+        String folder = GamesInProgress.gameFolder(GamesInProgress.curSlot);
+        long bytes = 0;
+        for (String name : FileUtils.filesInDir(folder)) {
+            bytes += FileUtils.fileLength(folder + "/" + name);
+        }
+        YandexGamesSdk.smokeSaveBytes((int)Math.min(Integer.MAX_VALUE, bytes));
     }
 
     private void reportSmokeHeroState() {
