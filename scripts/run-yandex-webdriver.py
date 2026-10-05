@@ -114,18 +114,18 @@ return {
             except Exception as error:
                 last_state = {"webdriverError": str(error)}
 
+            if last_state.get("error") or last_state.get("rejection") or last_state.get("javaFatal"):
+                raise RuntimeError(
+                    "Browser runtime failure: "
+                    + json.dumps(last_state, ensure_ascii=False, sort_keys=True)
+                )
+
             if predicate(last_state):
                 print(
                     f"Browser smoke state ({label}): "
                     + json.dumps(last_state, ensure_ascii=False, sort_keys=True)
                 )
                 return
-
-            if last_state.get("error") or last_state.get("rejection") or last_state.get("javaFatal"):
-                raise RuntimeError(
-                    "Browser runtime failure: "
-                    + json.dumps(last_state, ensure_ascii=False, sort_keys=True)
-                )
 
             time.sleep(0.5)
 
@@ -158,6 +158,51 @@ return {
             and state.get("saveReady") == "true"
             and state.get("smokeLoaded") == "true"
         ),
+    )
+
+    # Exercise the same Yandex pause/resume events used around ads and platform
+    # interruptions. A paused game must stop GameplayAPI and resume it again.
+    call(
+        "POST",
+        f"/session/{session_id}/execute/sync",
+        {
+            "script": """
+                var fn = window.__spdSmokeYandexListeners
+                    && window.__spdSmokeYandexListeners['game_api_pause'];
+                if (!fn) throw new Error('missing game_api_pause listener');
+                fn();
+                return true;
+            """,
+            "args": [],
+        },
+    )
+    wait_for_state(
+        "Yandex game_api_pause",
+        lambda state: state.get("gameplay") == "stopped",
+        timeout=30,
+    )
+
+    call(
+        "POST",
+        f"/session/{session_id}/execute/sync",
+        {
+            "script": """
+                var fn = window.__spdSmokeYandexListeners
+                    && window.__spdSmokeYandexListeners['game_api_resume'];
+                if (!fn) throw new Error('missing game_api_resume listener');
+                fn();
+                return true;
+            """,
+            "args": [],
+        },
+    )
+    wait_for_state(
+        "Yandex game_api_resume",
+        lambda state: (
+            state.get("gameplay") == "started"
+            and state.get("scene") == "com.shatteredpixel.shatteredpixeldungeon.scenes.GameScene"
+        ),
+        timeout=30,
     )
 
 finally:
