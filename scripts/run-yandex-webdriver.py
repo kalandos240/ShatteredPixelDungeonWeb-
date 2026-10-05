@@ -104,7 +104,9 @@ return {
   depth: root && root.getAttribute('data-spd-smoke-depth'),
   heroPos: root && root.getAttribute('data-spd-smoke-hero-pos'),
   heroReady: root && root.getAttribute('data-spd-smoke-hero-ready'),
-  keyboardKey: root && root.getAttribute('data-spd-smoke-key')
+  keyboardKey: root && root.getAttribute('data-spd-smoke-key'),
+  touchX: root && root.getAttribute('data-spd-smoke-touch-x'),
+  touchY: root && root.getAttribute('data-spd-smoke-touch-y')
 };
 """
 
@@ -278,6 +280,55 @@ return {
             and state.get("heroReady") == "true"
             and state.get("heroPos") is not None
             and state.get("heroPos") != keyboard_start_pos
+        ),
+        timeout=30,
+    )
+
+    # Exercise Chrome's native touch pointer path. The game exposes a safe
+    # adjacent tile's screen coordinates; WebDriver taps it as pointerType
+    # "touch", which must flow through WebInput touchstart/touchend and
+    # CellSelector before the actor fiber changes hero position.
+    wait_for_state(
+        "safe touch move target",
+        lambda state: (
+            state.get("touchX") is not None
+            and state.get("touchY") is not None
+        ),
+        timeout=30,
+    )
+    touch_start_pos = last_state["heroPos"]
+    touch_x = int(last_state["touchX"])
+    touch_y = int(last_state["touchY"])
+    call(
+        "POST",
+        f"/session/{session_id}/actions",
+        {
+            "actions": [{
+                "type": "pointer",
+                "id": "finger",
+                "parameters": {"pointerType": "touch"},
+                "actions": [
+                    {
+                        "type": "pointerMove",
+                        "duration": 0,
+                        "origin": "viewport",
+                        "x": touch_x,
+                        "y": touch_y,
+                    },
+                    {"type": "pointerDown", "button": 0},
+                    {"type": "pause", "duration": 100},
+                    {"type": "pointerUp", "button": 0},
+                ],
+            }]
+        },
+    )
+    wait_for_state(
+        "touch movement through WebInput",
+        lambda state: (
+            state.get("depth") == "2"
+            and state.get("heroReady") == "true"
+            and state.get("heroPos") is not None
+            and state.get("heroPos") != touch_start_pos
         ),
         timeout=30,
     )
