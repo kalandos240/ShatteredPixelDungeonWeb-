@@ -443,3 +443,155 @@ if old_wait_for_actor in game_scene_text:
 elif new_wait_for_actor not in game_scene_text:
     raise SystemExit("Could not locate GameScene actor-thread wait block")
 game_scene.write_text(game_scene_text, encoding="utf-8")
+
+
+# Yandex Games moderation forbids links that take players to developer,
+# storefront, partner, or other third-party resources. Keep upstream credits
+# intact, but make the WebGL target non-navigational and remove supporter/news
+# entry points which are designed around external websites.
+device_compat_text = device_compat.read_text(encoding="utf-8")
+old_web_marker = """\tpublic static boolean hasHardKeyboard(){
+\t\treturn Gdx.input.isPeripheralAvailable(Input.Peripheral.HardwareKeyboard);
+\t}"""
+new_web_marker = """\tpublic static boolean isWeb(){
+\t\treturn Gdx.app.getType() == Application.ApplicationType.WebGL;
+\t}
+
+\tpublic static boolean hasHardKeyboard(){
+\t\treturn Gdx.input.isPeripheralAvailable(Input.Peripheral.HardwareKeyboard);
+\t}"""
+if old_web_marker in device_compat_text:
+    device_compat_text = device_compat_text.replace(old_web_marker, new_web_marker, 1)
+elif new_web_marker not in device_compat_text:
+    raise SystemExit("Could not add DeviceCompat.isWeb()")
+device_compat.write_text(device_compat_text, encoding="utf-8")
+
+
+title_scene = root / "core/src/main/java/com/shatteredpixel/shatteredpixeldungeon/scenes/TitleScene.java"
+title_text = title_scene.read_text(encoding="utf-8")
+title_text = title_text.replace(
+    """\t\tbtnSupport = new SupportButton(GREY_TR, Messages.get(this, "support"));
+\t\tadd(btnSupport);""",
+    """\t\tbtnSupport = new SupportButton(GREY_TR, Messages.get(this, "support"));
+\t\tadd(btnSupport);
+\t\tif (DeviceCompat.isWeb()) {
+\t\t\tbtnSupport.enable(false);
+\t\t\tbtnSupport.alpha(0f);
+\t\t}""",
+    1
+)
+title_text = title_text.replace(
+    """\t\tbtnNews = new NewsButton(GREY_TR, Messages.get(this, "news"));
+\t\tbtnNews.icon(Icons.get(Icons.NEWS));
+\t\tadd(btnNews);""",
+    """\t\tbtnNews = new NewsButton(GREY_TR, Messages.get(this, "news"));
+\t\tbtnNews.icon(Icons.get(Icons.NEWS));
+\t\tadd(btnNews);
+\t\tif (DeviceCompat.isWeb()) {
+\t\t\tbtnNews.enable(false);
+\t\t\tbtnNews.alpha(0f);
+\t\t}""",
+    1
+)
+title_text = title_text.replace(
+    "\t\tbtnSupport.enable(alpha != 0);",
+    "\t\tbtnSupport.enable(!DeviceCompat.isWeb() && alpha != 0);",
+    1
+)
+title_text = title_text.replace(
+    "\t\tbtnNews.enable(alpha != 0);",
+    "\t\tbtnNews.enable(!DeviceCompat.isWeb() && alpha != 0);",
+    1
+)
+title_text = title_text.replace(
+    "\t\tbtnSupport.alpha(alpha);",
+    "\t\tbtnSupport.alpha(DeviceCompat.isWeb() ? 0f : alpha);",
+    1
+)
+title_text = title_text.replace(
+    "\t\tbtnNews.alpha(alpha);",
+    "\t\tbtnNews.alpha(DeviceCompat.isWeb() ? 0f : alpha);",
+    1
+)
+title_scene.write_text(title_text, encoding="utf-8")
+
+
+# Keep author/asset attributions in About, but do not render external-domain
+# labels or clickable hit targets in the Yandex build.
+about_scene = root / "core/src/main/java/com/shatteredpixel/shatteredpixeldungeon/scenes/AboutScene.java"
+about_text = about_scene.read_text(encoding="utf-8")
+about_text = about_text.replace(
+    "import com.watabou.utils.RectF;",
+    "import com.watabou.utils.DeviceCompat;\nimport com.watabou.utils.RectF;",
+    1
+)
+old_about_link = """\t\t\tif (linkText != null && linkUrl != null){
+
+\t\t\t\tint color = 0xFFFFFFFF;"""
+new_about_link = """\t\t\tif (DeviceCompat.isWeb()) {
+\t\t\t\tlinkText = null;
+\t\t\t\tlinkUrl = null;
+\t\t\t}
+
+\t\t\tif (linkText != null && linkUrl != null){
+
+\t\t\t\tint color = 0xFFFFFFFF;"""
+if old_about_link in about_text:
+    about_text = about_text.replace(old_about_link, new_about_link, 1)
+elif new_about_link not in about_text:
+    raise SystemExit("Could not locate AboutScene credits link block")
+about_scene.write_text(about_text, encoding="utf-8")
+
+
+# Never show the Patreon support nag on WebGL/Yandex.
+worn_key = root / "core/src/main/java/com/shatteredpixel/shatteredpixeldungeon/items/keys/WornKey.java"
+worn_text = worn_key.read_text(encoding="utf-8")
+worn_text = worn_text.replace(
+    "import com.watabou.utils.Callback;",
+    "import com.watabou.utils.Callback;\nimport com.watabou.utils.DeviceCompat;",
+    1
+)
+worn_text = worn_text.replace(
+    "if(!SPDSettings.supportNagged()){",
+    "if(!SPDSettings.supportNagged() && !DeviceCompat.isWeb()){",
+    1
+)
+worn_key.write_text(worn_text, encoding="utf-8")
+
+
+# The post-victory dialog normally contains a supporter CTA. On Yandex, keep
+# the congratulations/gameplay information and provide only a close action.
+victory = root / "core/src/main/java/com/shatteredpixel/shatteredpixeldungeon/windows/WndVictoryCongrats.java"
+victory_text = victory.read_text(encoding="utf-8")
+victory_text = victory_text.replace(
+    "import com.watabou.noosa.Image;",
+    "import com.watabou.noosa.Image;\nimport com.watabou.utils.DeviceCompat;",
+    1
+)
+old_victory_text = """\t\tRenderedTextBlock finalTxt = PixelScene.renderTextBlock(Messages.get(this, "thank_you") + " "  + Messages.get(this, "support_prompt"), 6);"""
+new_victory_text = """\t\tString finalMessage = Messages.get(this, "thank_you");
+\t\tif (!DeviceCompat.isWeb()) {
+\t\t\tfinalMessage += " " + Messages.get(this, "support_prompt");
+\t\t}
+\t\tRenderedTextBlock finalTxt = PixelScene.renderTextBlock(finalMessage, 6);"""
+if old_victory_text in victory_text:
+    victory_text = victory_text.replace(old_victory_text, new_victory_text, 1)
+elif new_victory_text not in victory_text:
+    raise SystemExit("Could not locate victory support message")
+old_close_rect = """\t\tbtnClose.icon(Icons.EXIT.get());
+\t\tbtnClose.setRect(btnSupport.right() + 1, height, width / 2 - 1, 18);
+\t\tadd(btnClose);"""
+new_close_rect = """\t\tbtnClose.icon(Icons.EXIT.get());
+\t\tif (DeviceCompat.isWeb()) {
+\t\t\tbtnSupport.enable(false);
+\t\t\tbtnSupport.alpha(0f);
+\t\t\tbtnClose.setRect(0, height, width, 18);
+\t\t} else {
+\t\t\tbtnClose.setRect(btnSupport.right() + 1, height, width / 2 - 1, 18);
+\t\t}
+\t\tadd(btnClose);"""
+if old_close_rect in victory_text:
+    victory_text = victory_text.replace(old_close_rect, new_close_rect, 1)
+elif new_close_rect not in victory_text:
+    raise SystemExit("Could not locate victory support button layout")
+victory.write_text(victory_text, encoding="utf-8")
