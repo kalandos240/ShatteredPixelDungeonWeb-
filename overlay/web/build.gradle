@@ -32,6 +32,9 @@ gdxTeaVM {
         htmlHeight.set(720)
         targetFileName.set("shattered-pixel-dungeon.js")
         optimization.set(OptimizationLevel.BALANCED)
+        // TeaVM runs out-of-process; Shattered's reflected class graph needs
+        // substantially more than the plugin's 1024 MB default.
+        processMemory.set(4096)
         obfuscated.set(false)
     }
 }
