@@ -52,6 +52,14 @@ public class WebPlatformSupport extends PlatformSupport {
     }
 
     @Override
+    public boolean openURI(String uri) {
+        // Yandex Games moderation does not allow gameplay UI to navigate to
+        // developer/store/partner websites. Keep this as a defense-in-depth
+        // guard even though the web overlay also removes those UI entry points.
+        return false;
+    }
+
+    @Override
     public boolean supportsVibration() {
         return false;
     }
