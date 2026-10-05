@@ -422,7 +422,7 @@ new_wait_for_actor = """\tpublic boolean waitForActorThread(int msToWait, boolea
 \t\t\treturn true;
 \t\t}
 
-\t\tif (Gdx.app.getType() == Application.ApplicationType.WebGL) {
+\t\tif (com.badlogic.gdx.Gdx.app.getType() == com.badlogic.gdx.Application.ApplicationType.WebGL) {
 \t\t\tif (interrupt) actorThread.interrupt();
 \t\t\treturn true;
 \t\t}
