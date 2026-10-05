@@ -127,47 +127,46 @@ done
 
 echo "Smoke browser: $("$BROWSER" --version 2>/dev/null || true)"
 
+DRIVER="$(command -v chromedriver || true)"
+if [[ -z "$DRIVER" ]]; then
+  echo "ChromeDriver is required for the browser readiness smoke test." >&2
+  exit 1
+fi
+
+echo "Smoke driver: $("$DRIVER" --version 2>/dev/null || true)"
+
+"$DRIVER" --port=9515 --allowed-ips=127.0.0.1 \
+  >"$CHROME_LOG" 2>&1 &
+DRIVER_PID=$!
+trap 'kill "$DRIVER_PID" "$SERVER_PID" >/dev/null 2>&1 || true' EXIT
+
+for _ in $(seq 1 100); do
+  if curl --silent --fail "http://127.0.0.1:9515/status" >/dev/null; then
+    break
+  fi
+  sleep 0.1
+done
+
 set +e
-timeout 90 "$BROWSER" \
-  --headless=new \
-  --no-sandbox \
-  --disable-dev-shm-usage \
-  --no-first-run \
-  --no-default-browser-check \
-  --autoplay-policy=no-user-gesture-required \
-  --disable-background-timer-throttling \
-  --disable-backgrounding-occluded-windows \
-  --disable-renderer-backgrounding \
-  --run-all-compositor-stages-before-draw \
-  --enable-unsafe-swiftshader \
-  --use-gl=angle \
-  --use-angle=swiftshader \
-  --virtual-time-budget=30000 \
-  --dump-dom "http://127.0.0.1:$PORT/" \
-  >"$DOM_OUT" 2>"$CHROME_LOG"
+python3 "$ROOT/scripts/run-yandex-webdriver.py" \
+  "http://127.0.0.1:9515" \
+  "$BROWSER" \
+  "http://127.0.0.1:$PORT/" \
+  "$DOM_OUT"
 STATUS=$?
 set -e
 
 if [[ $STATUS -ne 0 ]]; then
-  echo "Headless browser exited with status $STATUS" >&2
-  tail -200 "$CHROME_LOG" >&2 || true
-  exit "$STATUS"
-fi
-
-if ! grep -q 'data-spd-game-ready="true"' "$DOM_OUT" \
-    || ! grep -q 'data-yandex-loading-ready="true"' "$DOM_OUT"; then
-  echo "Browser smoke test did not reach Shattered Pixel Dungeon + Yandex LoadingAPI ready." >&2
-  if grep -q 'data-spd-smoke-error=' "$DOM_OUT" || grep -q 'data-spd-smoke-rejection=' "$DOM_OUT"; then
-    echo "Captured JavaScript runtime failure:" >&2
-    grep -o 'data-spd-\(smoke-\(error\|rejection\|stack\)\|webgl\)="[^"]*"' "$DOM_OUT" >&2 || true
-  fi
-  echo "--- Chrome log ---" >&2
+  echo "Browser smoke test failed with status $STATUS." >&2
+  echo "--- ChromeDriver log ---" >&2
   tail -200 "$CHROME_LOG" >&2 || true
   echo "--- HTTP log tail ---" >&2
-  tail -120 "$ROOT/.work/yandex-smoke-http.log" >&2 || true
-  echo "--- DOM tail ---" >&2
-  tail -100 "$DOM_OUT" >&2 || true
-  exit 1
+  tail -160 "$ROOT/.work/yandex-smoke-http.log" >&2 || true
+  if [[ -f "$DOM_OUT" ]]; then
+    echo "--- DOM tail ---" >&2
+    tail -100 "$DOM_OUT" >&2 || true
+  fi
+  exit "$STATUS"
 fi
 
 echo "Browser smoke test reached Game Ready and Yandex LoadingAPI.ready()."
