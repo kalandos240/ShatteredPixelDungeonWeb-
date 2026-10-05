@@ -70,6 +70,10 @@ public final class YandexGamesSdk {
 
     @JSBody(script =
             "(function() {" +
+            "  window.__spdGameReady = true;" +
+            "  if (document && document.documentElement) {" +
+            "    document.documentElement.setAttribute('data-spd-game-ready', 'true');" +
+            "  }" +
             "  var ysdk = window.__spdYsdk;" +
             "  if (!ysdk) {" +
             "    window.__spdPendingGameReady = true;" +
