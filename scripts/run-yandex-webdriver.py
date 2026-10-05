@@ -106,7 +106,8 @@ return {
   keyboardKey: root && root.getAttribute('data-spd-smoke-key'),
   touchX: root && root.getAttribute('data-spd-smoke-touch-x'),
   touchY: root && root.getAttribute('data-spd-smoke-touch-y'),
-  turnSaved: root && root.getAttribute('data-spd-smoke-turn-saved')
+  turnSaved: root && root.getAttribute('data-spd-smoke-turn-saved'),
+  saveBytes: root && root.getAttribute('data-spd-smoke-save-bytes')
 };
 """
 
