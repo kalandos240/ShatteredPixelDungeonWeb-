@@ -105,7 +105,8 @@ return {
   heroReady: root && root.getAttribute('data-spd-smoke-hero-ready'),
   keyboardKey: root && root.getAttribute('data-spd-smoke-key'),
   touchX: root && root.getAttribute('data-spd-smoke-touch-x'),
-  touchY: root && root.getAttribute('data-spd-smoke-touch-y')
+  touchY: root && root.getAttribute('data-spd-smoke-touch-y'),
+  turnSaved: root && root.getAttribute('data-spd-smoke-turn-saved')
 };
 """
 
@@ -199,30 +200,15 @@ return {
     )
     moved_pos = last_state["heroPos"]
 
-    # Yandex pauses the game before ads/platform interruptions. Shattered's
-    # GameScene.onPause() performs the authoritative save. Trigger that event
-    # before reload and give IndexedDB's asynchronous transaction a moment to
-    # commit; relying on pagehide alone can race page teardown.
-    call(
-        "POST",
-        f"/session/{session_id}/execute/sync",
-        {
-            "script": """
-                var fn = window.__spdSmokeYandexListeners
-                    && window.__spdSmokeYandexListeners['game_api_pause'];
-                if (!fn) throw new Error('missing game_api_pause listener');
-                fn();
-                return true;
-            """,
-            "args": [],
-        },
-    )
+    # Web builds autosave when a hero turn finishes. Wait until that exact
+    # moved position has been serialized, then refresh immediately without a
+    # synthetic Yandex pause. This guards against losing the last completed
+    # action on an ordinary browser reload.
     wait_for_state(
-        "pre-reload Yandex pause save",
-        lambda state: state.get("gameplay") == "stopped",
+        "completed-turn web autosave",
+        lambda state: state.get("turnSaved") == moved_pos,
         timeout=30,
     )
-    time.sleep(1.0)
 
     # Reload the same origin. gdx-teavm rehydrates local files from IndexedDB
     # before the application listener starts; smoke mode must now choose
