@@ -265,7 +265,9 @@ public class WebShatteredPixelDungeon extends ShatteredPixelDungeon {
                     && Dungeon.level.getTransition(target) == null) {
                 com.watabou.utils.PointF world =
                         com.shatteredpixel.shatteredpixeldungeon.tiles.DungeonTilemap.tileToWorld(target)
-                                .offset(com.shatteredpixel.shatteredpixeldungeon.tiles.DungeonTilemap.SIZE / 2f);
+                                .offset(
+                                com.shatteredpixel.shatteredpixeldungeon.tiles.DungeonTilemap.SIZE / 2f,
+                                com.shatteredpixel.shatteredpixeldungeon.tiles.DungeonTilemap.SIZE / 2f);
                 com.watabou.utils.Point screen =
                         com.watabou.noosa.Camera.main.cameraToScreen(world.x, world.y);
                 YandexGamesSdk.smokeTouchTarget(screen.x, screen.y);
