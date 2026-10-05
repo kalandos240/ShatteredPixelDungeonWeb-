@@ -12,6 +12,42 @@ if [[ ! -f "$DIST/index.html" ]]; then
   exit 1
 fi
 
+# The production archive loads /sdk.js from Yandex. For localhost smoke tests,
+# provide a minimal SDK-compatible mock after archive validation so the test
+# exercises the real Yandex initialization branch without shipping this file.
+cat > "$DIST/sdk.js" <<'JS'
+(function () {
+  const listeners = {};
+  const ysdk = {
+    environment: { i18n: { lang: "en" } },
+    features: {
+      LoadingAPI: {
+        ready: function () {
+          document.documentElement.setAttribute("data-yandex-loading-ready", "true");
+        }
+      },
+      GameplayAPI: {
+        start: function () {
+          document.documentElement.setAttribute("data-yandex-gameplay", "started");
+        },
+        stop: function () {
+          document.documentElement.setAttribute("data-yandex-gameplay", "stopped");
+        }
+      }
+    },
+    on: function (name, callback) {
+      listeners[name] = callback;
+    }
+  };
+  window.__spdSmokeYandexListeners = listeners;
+  window.YaGames = {
+    init: function () {
+      return Promise.resolve(ysdk);
+    }
+  };
+})();
+JS
+
 BROWSER=""
 for candidate in google-chrome google-chrome-stable chromium chromium-browser; do
   if command -v "$candidate" >/dev/null 2>&1; then
@@ -62,8 +98,9 @@ if [[ $STATUS -ne 0 ]]; then
   exit "$STATUS"
 fi
 
-if ! grep -q 'data-spd-game-ready="true"' "$DOM_OUT"; then
-  echo "Browser smoke test did not reach Shattered Pixel Dungeon Game Ready." >&2
+if ! grep -q 'data-spd-game-ready="true"' "$DOM_OUT" \
+    || ! grep -q 'data-yandex-loading-ready="true"' "$DOM_OUT"; then
+  echo "Browser smoke test did not reach Shattered Pixel Dungeon + Yandex LoadingAPI ready." >&2
   echo "--- Chrome log ---" >&2
   tail -200 "$CHROME_LOG" >&2 || true
   echo "--- DOM tail ---" >&2
@@ -71,4 +108,4 @@ if ! grep -q 'data-spd-game-ready="true"' "$DOM_OUT"; then
   exit 1
 fi
 
-echo "Browser smoke test reached Game Ready."
+echo "Browser smoke test reached Game Ready and Yandex LoadingAPI.ready()."
