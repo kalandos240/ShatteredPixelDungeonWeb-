@@ -12,6 +12,10 @@ if [[ ! -f "$DIST/index.html" ]]; then
   exit 1
 fi
 
+if command -v node >/dev/null 2>&1; then
+  node --check "$DIST/shattered-pixel-dungeon.js"
+fi
+
 # The production archive loads /sdk.js from Yandex. For localhost smoke tests,
 # provide a minimal SDK-compatible mock after archive validation so the test
 # exercises the real Yandex initialization branch without shipping this file.
