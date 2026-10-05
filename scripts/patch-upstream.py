@@ -70,14 +70,14 @@ elif new_keyboard not in text_input_text:
 text_input.write_text(text_input_text, encoding="utf-8")
 
 
-# TeaVM needs substantially more heap than the regular JVM/Android build when
-# compiling Shattered's large class graph. Keep the compiler inside the memory
-# budget of the standard GitHub runner and avoid parallel Gradle workers.
+# TeaVM itself receives a dedicated out-of-process heap in web/build.gradle.
+# Keep the regular Gradle daemon at upstream's 2 GB and disable parallel
+# workers so the compiler process has enough room on CI.
 gradle_properties = root / "gradle.properties"
 gradle_properties_text = gradle_properties.read_text(encoding="utf-8")
 gradle_properties_text = gradle_properties_text.replace(
     "org.gradle.jvmargs=-Xmx2048m -XX:MaxMetaspaceSize=512m -XX:+HeapDumpOnOutOfMemoryError -Dfile.encoding=UTF-8",
-    "org.gradle.jvmargs=-Xmx4096m -XX:MaxMetaspaceSize=1024m -XX:+HeapDumpOnOutOfMemoryError -Dfile.encoding=UTF-8"
+    "org.gradle.jvmargs=-Xmx2048m -XX:MaxMetaspaceSize=512m -XX:+HeapDumpOnOutOfMemoryError -Dfile.encoding=UTF-8"
 )
 gradle_properties_text = gradle_properties_text.replace(
     "org.gradle.parallel=true",
