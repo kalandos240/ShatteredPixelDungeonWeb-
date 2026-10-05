@@ -101,7 +101,8 @@ return {
   language: root && root.getAttribute('data-spd-smoke-language'),
   depth: root && root.getAttribute('data-spd-smoke-depth'),
   heroPos: root && root.getAttribute('data-spd-smoke-hero-pos'),
-  heroReady: root && root.getAttribute('data-spd-smoke-hero-ready')
+  heroReady: root && root.getAttribute('data-spd-smoke-hero-ready'),
+  keyboardKey: root && root.getAttribute('data-spd-smoke-key')
 };
 """
 
@@ -234,6 +235,47 @@ return {
             and state.get("heroReady") == "true"
             and state.get("heroPos") == moved_pos
         ),
+    )
+
+    # Exercise the real browser keyboard path: WebDriver key event -> DOM ->
+    # gdx-teavm WebInput -> Shattered KeyBindings/CellSelector -> actor fiber.
+    wait_for_state(
+        "safe keyboard move target",
+        lambda state: state.get("keyboardKey") in {"UP", "DOWN", "LEFT", "RIGHT"},
+        timeout=30,
+    )
+    keyboard_start_pos = last_state["heroPos"]
+    webdriver_keys = {
+        "UP": "\ue013",
+        "DOWN": "\ue015",
+        "LEFT": "\ue012",
+        "RIGHT": "\ue014",
+    }
+    key_value = webdriver_keys[last_state["keyboardKey"]]
+    call(
+        "POST",
+        f"/session/{session_id}/actions",
+        {
+            "actions": [{
+                "type": "key",
+                "id": "keyboard",
+                "actions": [
+                    {"type": "keyDown", "value": key_value},
+                    {"type": "pause", "duration": 80},
+                    {"type": "keyUp", "value": key_value},
+                ],
+            }]
+        },
+    )
+    wait_for_state(
+        "keyboard movement through WebInput",
+        lambda state: (
+            state.get("depth") == "2"
+            and state.get("heroReady") == "true"
+            and state.get("heroPos") is not None
+            and state.get("heroPos") != keyboard_start_pos
+        ),
+        timeout=30,
     )
 
     # Exercise the same Yandex pause/resume events used around ads and platform
