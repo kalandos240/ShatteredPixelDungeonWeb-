@@ -110,6 +110,17 @@ public final class YandexGamesSdk {
             "return window.__spdSmokeAdvance === true;")
     public static native boolean smokeAdvanceRequested();
 
+    @JSBody(script =
+            "return window.__spdSmokeMove === true;")
+    public static native boolean smokeMoveRequested();
+
+    @JSBody(params = {"position", "ready"}, script =
+            "if (document && document.documentElement) {" +
+            "  document.documentElement.setAttribute('data-spd-smoke-hero-pos', String(position));" +
+            "  document.documentElement.setAttribute('data-spd-smoke-hero-ready', ready ? 'true' : 'false');" +
+            "}")
+    public static native void smokeHeroState(int position, boolean ready);
+
     @JSBody(params = {"sceneName"}, script =
             "if (document && document.documentElement) {" +
             "  document.documentElement.setAttribute('data-spd-smoke-scene', sceneName || 'unknown');" +
