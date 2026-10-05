@@ -98,12 +98,17 @@ public final class YandexGamesSdk {
             "}")
     public static native void gameplayStop();
 
-    @JSBody(params = {"loadedExisting", "saveReady"}, script =
+    @JSBody(params = {"loadedExisting", "saveReady", "depth"}, script =
             "if (document && document.documentElement) {" +
             "  document.documentElement.setAttribute('data-spd-save-ready', saveReady ? 'true' : 'false');" +
             "  document.documentElement.setAttribute('data-spd-smoke-loaded', loadedExisting ? 'true' : 'false');" +
+            "  document.documentElement.setAttribute('data-spd-smoke-depth', String(depth));" +
             "}")
-    public static native void smokeGameSceneReady(boolean loadedExisting, boolean saveReady);
+    public static native void smokeGameSceneReady(boolean loadedExisting, boolean saveReady, int depth);
+
+    @JSBody(script =
+            "return window.__spdSmokeAdvance === true;")
+    public static native boolean smokeAdvanceRequested();
 
     @JSBody(params = {"sceneName"}, script =
             "if (document && document.documentElement) {" +
