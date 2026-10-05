@@ -13,6 +13,7 @@ import com.shatteredpixel.shatteredpixeldungeon.SPDSettings;
 import com.shatteredpixel.shatteredpixeldungeon.ShatteredPixelDungeon;
 import com.shatteredpixel.shatteredpixeldungeon.actors.hero.HeroClass;
 import com.shatteredpixel.shatteredpixeldungeon.messages.Languages;
+import com.shatteredpixel.shatteredpixeldungeon.levels.features.LevelTransition;
 import com.shatteredpixel.shatteredpixeldungeon.scenes.GameScene;
 import com.shatteredpixel.shatteredpixeldungeon.scenes.InterlevelScene;
 import com.shatteredpixel.shatteredpixeldungeon.ui.ActionIndicator;
@@ -33,7 +34,8 @@ public class WebShatteredPixelDungeon extends ShatteredPixelDungeon {
     private boolean created;
     private boolean smokeRunStarted;
     private boolean smokeLoadedExisting;
-    private boolean smokeGameSceneReported;
+    private int smokeReportedDepth = -1;
+    private boolean smokeAdvanceConsumed;
     private boolean platformPaused;
     private boolean gameReadySent;
     private Boolean gameplayActive;
@@ -139,6 +141,7 @@ public class WebShatteredPixelDungeon extends ShatteredPixelDungeon {
             YandexGamesSdk.smokeScene(Game.scene().getClass().getName());
         }
         reportSmokeGameState();
+        maybeAdvanceSmokeFloor();
     }
 
     private void startSmokeRun() {
@@ -163,14 +166,33 @@ public class WebShatteredPixelDungeon extends ShatteredPixelDungeon {
     }
 
     private void reportSmokeGameState() {
-        if (!smokeMode || smokeGameSceneReported || !(Game.scene() instanceof GameScene)) {
+        if (!smokeMode || !(Game.scene() instanceof GameScene)
+                || smokeReportedDepth == Dungeon.depth) {
             return;
         }
 
         boolean saveReady = GamesInProgress.gameExists(GamesInProgress.curSlot);
         if (saveReady) {
-            smokeGameSceneReported = true;
-            YandexGamesSdk.smokeGameSceneReady(smokeLoadedExisting, true);
+            smokeReportedDepth = Dungeon.depth;
+            YandexGamesSdk.smokeGameSceneReady(smokeLoadedExisting, true, Dungeon.depth);
+        }
+    }
+
+    private void maybeAdvanceSmokeFloor() {
+        if (!smokeMode || smokeAdvanceConsumed || smokeLoadedExisting
+                || !(Game.scene() instanceof GameScene)
+                || Dungeon.depth != 1 || !YandexGamesSdk.smokeAdvanceRequested()) {
+            return;
+        }
+
+        LevelTransition exit = Dungeon.level.getTransition(LevelTransition.Type.REGULAR_EXIT);
+        if (exit == null) {
+            throw new IllegalStateException("Smoke test could not find the floor 1 exit");
+        }
+
+        smokeAdvanceConsumed = true;
+        if (!Dungeon.level.activateTransition(Dungeon.hero, exit)) {
+            throw new IllegalStateException("Smoke test could not activate the floor 1 exit");
         }
     }
 
