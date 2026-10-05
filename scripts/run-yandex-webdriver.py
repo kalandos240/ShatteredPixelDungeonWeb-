@@ -98,7 +98,8 @@ return {
   smokeLoaded: root && root.getAttribute('data-spd-smoke-loaded'),
   scene: root && root.getAttribute('data-spd-smoke-scene'),
   javaFatal: root && root.getAttribute('data-spd-java-fatal'),
-  language: root && root.getAttribute('data-spd-smoke-language')
+  language: root && root.getAttribute('data-spd-smoke-language'),
+  depth: root && root.getAttribute('data-spd-smoke-depth')
 };
 """
 
@@ -144,6 +145,26 @@ return {
             and state.get("saveReady") == "true"
             and state.get("smokeLoaded") == "false"
             and state.get("language") == "ru"
+            and state.get("depth") == "1"
+        ),
+    )
+
+    call(
+        "POST",
+        f"/session/{session_id}/execute/sync",
+        {
+            "script": "window.__spdSmokeAdvance = true; return true;",
+            "args": [],
+        },
+    )
+    wait_for_state(
+        "second-floor GameScene + save",
+        lambda state: (
+            state.get("gameplay") == "started"
+            and state.get("saveReady") == "true"
+            and state.get("smokeLoaded") == "false"
+            and state.get("scene") == "com.shatteredpixel.shatteredpixeldungeon.scenes.GameScene"
+            and state.get("depth") == "2"
         ),
     )
 
@@ -159,6 +180,7 @@ return {
             and state.get("gameplay") == "started"
             and state.get("saveReady") == "true"
             and state.get("smokeLoaded") == "true"
+            and state.get("depth") == "2"
         ),
     )
 
