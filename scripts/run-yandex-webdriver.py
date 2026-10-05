@@ -193,11 +193,34 @@ return {
     )
     moved_pos = last_state["heroPos"]
 
-    # Reload the same origin. pagehide triggers Shattered's normal pause/save
-    # path, then gdx-teavm rehydrates local files from IndexedDB before the
-    # application listener starts. The restored hero must keep the moved tile.
-    # before the application listener starts, so smoke mode must now choose
-    # CONTINUE and restore the serialized run instead of creating a new one.
+    # Yandex pauses the game before ads/platform interruptions. Shattered's
+    # GameScene.onPause() performs the authoritative save. Trigger that event
+    # before reload and give IndexedDB's asynchronous transaction a moment to
+    # commit; relying on pagehide alone can race page teardown.
+    call(
+        "POST",
+        f"/session/{session_id}/execute/sync",
+        {
+            "script": """
+                var fn = window.__spdSmokeYandexListeners
+                    && window.__spdSmokeYandexListeners['game_api_pause'];
+                if (!fn) throw new Error('missing game_api_pause listener');
+                fn();
+                return true;
+            """,
+            "args": [],
+        },
+    )
+    wait_for_state(
+        "pre-reload Yandex pause save",
+        lambda state: state.get("gameplay") == "stopped",
+        timeout=30,
+    )
+    time.sleep(1.0)
+
+    # Reload the same origin. gdx-teavm rehydrates local files from IndexedDB
+    # before the application listener starts; smoke mode must now choose
+    # CONTINUE and restore the moved hero tile.
     call("POST", f"/session/{session_id}/refresh", {})
     wait_for_state(
         "reloaded GameScene from IndexedDB save",
